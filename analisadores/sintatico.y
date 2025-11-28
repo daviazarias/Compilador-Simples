@@ -368,7 +368,7 @@ void yyerror(char *msg) {
 
 int main(int argc, char **argv){
 
-    char nameIn[32], nameMvs[32], nameDot[32], nameSvg[32], cmd[100];
+    char nameIn[64], nameMvs[64], nameDot[64], nameSvg[64], cmd[200];
     char *p;
     FILE *dot;
 
@@ -380,11 +380,19 @@ int main(int argc, char **argv){
     if(p = strstr(argv[1], ".simples"))
         *p = 0; 
 
-    strcpy(nameSvg, strcpy(nameDot, strcpy(nameMvs, strcpy(nameIn,  argv[1]))));
+    strcpy(nameIn, "codigos_simples/");
+    strcat(nameIn, argv[1]);
+
+    strcpy(nameSvg, strcpy(nameDot, strcpy(nameMvs, argv[1])));
     
     if(!(yyin = fopen(strcat(nameIn, ".simples"), "r"))){
-        fprintf(stderr, "ERRO: %s não existe\n", nameIn);
-        return 2;
+
+        char *arq = (char*) strstr(nameIn, argv[1]);
+
+        if(!(yyin = fopen(arq, "r"))){
+            fprintf(stderr, "ERRO: %s não existe\n", arq);
+            return 2;
+        }
     }
 
     yyout = fopen(strcat(nameMvs,".mvs"), "w");
