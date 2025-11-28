@@ -1,0 +1,4 @@
+programa teste
+inicio
+    escreva (2 * (3 + 9) - 5) + (4 * 3) div 5
+fimprograma
