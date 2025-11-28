@@ -1,0 +1,8 @@
+programa repete
+    inteiro i j
+inicio
+    leia i
+    leia j
+    i <- i div j
+    escreva i
+fimprograma

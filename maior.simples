@@ -1,0 +1,10 @@
+programa maior
+    inteiro a b
+inicio
+    leia a
+    leia b
+    se nao (a < b)
+        entao escreva a
+        senao escreva b
+    fimse
+fimprograma
