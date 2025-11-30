@@ -12,7 +12,7 @@ all: $(COMPILADOR)
 # EXECUTÁVEIS
 
 $(COMPILADOR): $(NOMES_OBJ)
-	gcc $^ -g -o $@
+	gcc $^ -o $@
 
 $(OBJ):
 	mkdir $@
