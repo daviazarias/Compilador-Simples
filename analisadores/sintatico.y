@@ -387,7 +387,7 @@ int main(int argc, char **argv){
     
     if(!(yyin = fopen(strcat(nameIn, ".simples"), "r"))){
 
-        char *arq = (char*) strstr(nameIn, argv[1]);
+        char *arq = strstr(nameIn, argv[1]);
 
         if(!(yyin = fopen(arq, "r"))){
             fprintf(stderr, "ERRO: %s não existe\n", arq);
@@ -413,5 +413,3 @@ int main(int argc, char **argv){
 
     return 0;
 }
-
-    

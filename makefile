@@ -7,15 +7,12 @@ OBJ = codigos_o
 NOMES = utils lexico sintatico tree
 NOMES_OBJ = $(addprefix $(OBJ)/, $(addsuffix .o, $(NOMES)))
 
-all: $(COMPILADOR) mvs
+all: $(COMPILADOR)
 
 # EXECUTÁVEIS
 
 $(COMPILADOR): $(NOMES_OBJ)
-	gcc $^ -o $@
-
-mvs: $(OBJ)/mvs.o $(OBJ)
-	gcc $< -o $@
+	gcc $^ -g -o $@
 
 $(OBJ):
 	mkdir $@
@@ -38,7 +35,7 @@ $(OBJ)/%.o: $(FONTE)/%.c $(OBJ)
 
 # LIMPAR
 
-clean:
+limpa clean:
 	rm -rf $(OBJ)
 	rm -f $(FONTE)/sintatico.c $(FONTE)/sintatico.h $(FONTE)/lexico.c
-	rm -f $(COMPILADOR) mvs *.dot *.svg *.mvs
+	rm -f $(COMPILADOR) *.dot *.svg *.mvs

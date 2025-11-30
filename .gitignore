@@ -7,3 +7,4 @@ mvs
 codigos_c/lexico.c
 codigos_c/sintatico.c 
 codigos_c/sintatico.h
+.vscode

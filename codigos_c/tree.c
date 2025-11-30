@@ -137,20 +137,27 @@ void desalocarArvore(ptno raiz){
 void geraCodigo(FILE *arq, ptno p){
 
     if(!p) return;
-    ptno p1, p2, p3;
+
+    ptno p1 = NULL;
+    ptno p2 = NULL;
+    ptno p3 = NULL;
 
     switch(p->tipo){
 
         case PROGRAMA:
             p1 = p->filho;
             p2 = p1->irmao;
-            p3 = p2->irmao;
+
+            // Caso o programa não tenha comandos (sintaticamente correto)
+            if(p2) p3 = p2->irmao;
             
             fprintf(arq, "\tINPP\n");
 
             if(N_VARIAVEIS)
                 fprintf(arq, "\tAMEM\t%d\n", N_VARIAVEIS);
 
+            // Se o programa não tiver variáveis, a lista
+            // de comandos estará em p2, enquanto p3 é nulo
             geraCodigo(arq, p3 ? p3 : p2);
 
             if(N_VARIAVEIS)
@@ -182,7 +189,6 @@ void geraCodigo(FILE *arq, ptno p){
         case REPETICAO:
             p1 = p->filho;
             p2 = p1->irmao;
-            p3 = p2->irmao;
 
             fprintf(arq, "L%d\tNADA\n", empilha(nRotulos++));
             geraCodigo(arq, p1);
@@ -198,7 +204,9 @@ void geraCodigo(FILE *arq, ptno p){
         case SELECAO:
             p1 = p->filho;
             p2 = p1->irmao;
-            p3 = p2->irmao;
+
+            // Caso o bloco "então" seja vazio (sintaticamente correto)
+            if(p2) p3 = p2->irmao;
 
             geraCodigo(arq, p1);
 
