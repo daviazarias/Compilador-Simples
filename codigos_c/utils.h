@@ -26,6 +26,10 @@
 #define FUN 2
 #define PAR 3
 
+// TIPO
+#define LOG 0
+#define INT 1
+
 // MECANISMO
 #define REF 0
 #define VAL 1
@@ -52,10 +56,10 @@ listaPars** recuperarLista(int ind);
 void atualizarDeslocamento(int indice, int dsl);
 void inserirSimbolo(elemTabSimb* elem);
 int buscaSimbolo(char *id);
-int removerSimbolos(int qtd);
+void removerSimbolos(int qtd);
 
-long empilha(long valor);
-long desempilha(void);
+int empilha(int valor);
+int desempilha(void);
 
 listaPars* criarPar(int tip, int mec);
 void inserirPar(listaPars** lista, listaPars* novoPar);

@@ -47,22 +47,19 @@
 #define CHAMADA_PROCEDIMENTO    27
 #define LISTA_PARAMETROS        28
 #define LISTA_ARGUMENTOS        29 
-#define REFERENCIA              30
+#define MECANISMO              30
 #define PARAMETRO               31
-
-#define LOG 0
-#define INT 1
 
 typedef struct no *ptno;
 
 struct no {
     int tipo;
-    int retorno;
+    int valor;
     char* id;
     ptno filho, irmao;
 };
 
-ptno criaNo(int tipo, int retorno, char* id);
+ptno criaNo(int tipo, int valor, char* id);
 void adicionaFilho(ptno pai, ptno filho);
 void geraDot(FILE* dot, ptno arvore);
 void desalocarArvore(ptno raiz);

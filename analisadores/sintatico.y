@@ -13,8 +13,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "utils.h"
 #include "tree.h"
+#include "utils.h"
 
 #define NOME_PROG "simples"
 
@@ -137,8 +137,8 @@ declaracao_variaveis
     ;
 
 tipo
-    : T_LOGICO  { $$ = criaNo(TIPO, VAZIO, strdup("logico")); }
-    | T_INTEIRO { $$ = criaNo(TIPO, VAZIO, strdup("inteiro")); }
+    : T_LOGICO  { $$ = criaNo(TIPO, LOG, strdup("logico")); }
+    | T_INTEIRO { $$ = criaNo(TIPO, INT, strdup("inteiro")); }
     ;
 
 lista_variaveis
@@ -222,8 +222,8 @@ parametro
     ;
 
 mecanismo
-    :       { $$ = NULL; }
-    | T_REF { $$ = criaNo(REFERENCIA, VAZIO, NULL); }
+    :       { $$ = criaNo(MECANISMO, VAL, strdup("valor")); }
+    | T_REF { $$ = criaNo(MECANISMO, REF, strdup("referencia")); }
     ;
 
 lista_comandos
@@ -247,7 +247,7 @@ comando
 
 lista_argumentos
     : { $$ = NULL; }
-    | lista_argumentos argumento
+    | argumento lista_argumentos
         {
             $$ = criaNo(LISTA_ARGUMENTOS, VAZIO, NULL);
             adicionaFilho($$, $2);
@@ -432,7 +432,7 @@ int main(int argc, char **argv){
     yyparse();
 
     geraDot(dot, raiz);
-    /*geraCodigo(yyout, raiz);*/
+    geraCodigo(yyout, raiz);
 
     sprintf(cmd, "dot -Tsvg %s -o %s &", nameDot, strcat(nameSvg, ".svg"));
     system(cmd);

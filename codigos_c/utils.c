@@ -61,8 +61,6 @@ void atualizarDeslocamento(int indice, int dsl){
 int buscaSimbolo(char *id){
     int i;
 
-    exibirTabela();
-
     for(i = topoTab; i >= 0 && strcmp(tabSimb[i].id, id); i--);
 
     if(i == -1){
@@ -70,6 +68,8 @@ int buscaSimbolo(char *id){
         sprintf(msg, "O identificador %s não foi definido.", id);
         yyerror(msg);
     }
+
+    exibirTabela();
 
     return i;
 }
@@ -90,13 +90,10 @@ void inserirSimbolo(elemTabSimb* elem){
     }
 
     tabSimb[++topoTab] = *elem;
-
-    exibirTabela();
 }
 
-int removerSimbolos(int qtd){
+void removerSimbolos(int qtd){
     topoTab -= qtd;
-    return topoTab;
 }
 
 listaPars** recuperarLista(int ind){
@@ -110,14 +107,14 @@ listaPars** recuperarLista(int ind){
 long Pilha[TAM_PIL];
 long topoPil = 0;
 
-long empilha(long valor) {
+int empilha(int valor) {
     if(topoPil == TAM_PIL)
         yyerror("Pilha cheia!");
     Pilha[topoPil++] = valor;
     return valor;
 }
 
-long desempilha(void) {
+int desempilha(void) {
     if(topoPil == 0)
         yyerror("Pilha vazia!");
     return Pilha[--topoPil];

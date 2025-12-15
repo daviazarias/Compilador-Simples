@@ -10,6 +10,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include "utils.h"
 #include "tree.h"
 
@@ -22,8 +23,15 @@ extern void yyerror(char*);
 extern int yylineno;
 extern elemTabSimb tabSimb[];
 
-static int nRotulos = 1;
+static bool primeira_rotina = true;
+static int n_variaveis = 0;
+static int n_parametros = 0;
+static int tipo;
+static int n_rotulos = 1;
 static int aux;
+
+static listaPars **listaParametros;
+static listaPars *parametro;
 
 static char tipos[QTD_TIPOS][32] = 
     {"programa",                // 0
@@ -56,25 +64,14 @@ static char tipos[QTD_TIPOS][32] =
      "chamada_procedimento",    // 27
      "lista_parametros",        // 28
      "lista_argumentos",        // 29
-     "referencia",              // 30
+     "mecanismo",               // 30
      "parametro"                // 31
     };      
-
-    // inserirSimbolo(
-    //             criarSimbolo(atomo, // Identificador
-    //             GLOBAL,             // Escopo
-    //             n_identificadores,  // Deslocamento
-    //             VAZIO,              // Rótulo
-    //             VAR,                // Categoria
-    //             tipo,               // Tipo
-    //             VAZIO               // Mecanismo
-    //             )
-    //         );     
      
-ptno criaNo(int tipo, int retorno, char* id){
+ptno criaNo(int tipo, int valor, char* id){
     ptno n = (ptno) malloc(sizeof(struct no));
     n->tipo = tipo;
-    n->retorno = retorno;
+    n->valor = valor;
     n->id = id;
     n->filho = n->irmao = NULL;
     return n;
@@ -129,277 +126,463 @@ void desalocarArvore(ptno raiz){
 }
 
 // --------------------- GERAÇÃO DE CÓDIGO -------------------------
-
+   
 void geraCodigo(FILE *arq, ptno p){
 
     if(!p) return;
 
-    ptno p1 = NULL;
-    ptno p2 = NULL;
-    ptno p3 = NULL;
+    ptno p_i = p->filho;
+    int simbolo;
 
     switch(p->tipo){
 
         case PROGRAMA:
         
-            p2 = p->filho->irmao;
-
             fprintf(arq, "\tINPP\n");
 
-            if(p2->tipo == DECLARACAO_VARIAVEIS)
-                fprintf(arq, "\tAMEM\t%d\n", 0);
-
-            for(ptno p_i = p2; p_i; p_i = p_i->irmao)
+            for(p_i = p_i->irmao; p_i; p_i = p_i->irmao)
             {
-                if(p_i->tipo == LISTA_COMANDOS)
+                if (p_i->tipo == LISTA_COMANDOS)
                     fprintf(arq, "L0\tNADA\n");
 
                 geraCodigo(arq, p_i);
             }
 
-            if(p2->tipo == DECLARACAO_VARIAVEIS)
-                fprintf(arq, "\tDMEM\t%d\n", 0);
+            if(n_variaveis > 0)
+                fprintf(arq, "\tDMEM\t%d\n", n_variaveis);
 
             fprintf(arq, "\tFIMP");
 
         break;
 
+        case DECLARACAO_VARIAVEIS:
+            tipo = p_i->valor;
+            geraCodigo(arq, p_i->irmao);
+            geraCodigo(arq, p_i->irmao->irmao);
+        break;
+
+        case LISTA_VARIAVEIS:
+
+            inserirSimbolo(
+                criarSimbolo(
+                    p_i->id,                // Identificador
+                    GLOBAL,                 // Escopo
+                    n_variaveis++,          // Deslocamento
+                    VAZIO,                  // Rótulo       
+                    VAR,                    // Categoria
+                    tipo,                   // Tipo
+                    VAZIO                   // Mecanismo
+                )
+            );   
+
+            if(p_i->irmao) geraCodigo(arq, p_i->irmao);
+            else fprintf(arq, "\tAMEM\t%d\n", n_variaveis);
+
+        break;
+
         case LISTA_ROTINAS:
-            p1 = p->filho;
-            p2 = p1->irmao;
 
-            fprintf(arq, "\tDSVS\tL0\n");
+            if(primeira_rotina){
+                fprintf(arq, "\tDSVS\tL0\n");
+                primeira_rotina = false;
+            }
 
-            geraCodigo(arq, p1);
-            geraCodigo(arq, p2);
+            n_parametros = 0;
+
+            geraCodigo(arq, p_i);
+            geraCodigo(arq, p_i->irmao);
+
+            removerSimbolos(n_parametros);
+
+        break;
+
+        case LISTA_PARAMETROS:
+            geraCodigo(arq, p_i->irmao);
+            geraCodigo(arq, p_i);
+        break;
+
+        case PARAMETRO:
+            inserirSimbolo(
+                criarSimbolo(
+                    p_i->irmao->irmao->id,  // Identificador
+                    LOCAL,                  // Escopo
+                    -(3 + n_parametros++),  // Deslocamento
+                    VAZIO,                  // Rótulo       
+                    PAR,                    // Categoria
+                    p_i->irmao->valor,      // Tipo
+                    p_i->valor              // Mecanismo
+                )
+            );
+
+            inserirPar(listaParametros, criarPar(p_i->irmao->valor, p_i->valor));
+
         break;
 
         case FUNCAO:
-            fprintf(arq, "L%d\tENSP\n", nRotulos++);
 
-            for(p1 = p->filho; p1->irmao; p1 = p1->irmao);
-            geraCodigo(arq, p1);
+            inserirSimbolo(
+                criarSimbolo(
+                    p->id,                  // Identificador
+                    GLOBAL,                 // Escopo
+                    VAZIO,                  // Deslocamento -- DESCONHECIDO
+                    n_rotulos,              // Rótulo       
+                    FUN,                    // Categoria
+                    p_i->valor,             // Tipo
+                    VAZIO                   // Mecanismo
+                )
+            );   
+            
+            fprintf(arq, "L%d\tENSP\n", n_rotulos++);
 
-            fprintf(arq, "\tRTSP\t%d\n", 1 /* FIXME */);
+            simbolo = buscaSimbolo(p->id);
+            listaParametros = recuperarLista(simbolo);
+
+            geraCodigo(arq, p_i->irmao);
+
+            atualizarDeslocamento(simbolo, -(3 + n_parametros));
+
+            geraCodigo(arq, p_i->irmao->irmao);
+
+            fprintf(arq, "\tRTSP\t%d\n", n_parametros);
+
         break;
 
         case PROCEDIMENTO:
-            fprintf(arq, "L%d\tENSP\n", nRotulos++);
+            
+            inserirSimbolo(
+                criarSimbolo(
+                    p->id,                  // Identificador
+                    GLOBAL,                 // Escopo
+                    VAZIO,                  // Deslocamento 
+                    n_rotulos,              // Rótulo       
+                    PRO,                    // Categoria
+                    VAZIO,                  // Tipo
+                    VAZIO                   // Mecanismo
+                )
+            );     
+            
+            fprintf(arq, "L%d\tENSP\n", n_rotulos++);
 
-            for(p1 = p->filho; p1->irmao; p1 = p1->irmao);
-            geraCodigo(arq, p1);
+            simbolo = buscaSimbolo(p->id);
+            listaParametros = recuperarLista(simbolo);
 
-            fprintf(arq, "\tRTSP\t%d\n", 0);
+            geraCodigo(arq, p_i);
+            geraCodigo(arq, p_i->irmao);
+
+            fprintf(arq, "\tRTSP\t%d\n", n_parametros);
+
         break;
 
         case CHAMADA_FUNCAO:
             fprintf(arq, "\tAMEM\t1\n");
-            geraCodigo(arq, p->filho->irmao);
+
+            simbolo = buscaSimbolo(p_i->id);
+            parametro = tabSimb[simbolo].par;
+
+            p->valor = tabSimb[simbolo].tip;
+
+            geraCodigo(arq, p_i->irmao);
+
+            if(parametro)
+                yyerror("Função chamada com poucos argumentos");
 
             fprintf(arq, "\tSVCP\n");
-            fprintf(arq, "\tDSVS\tL%d\n", 0);
+            fprintf(arq, "\tDSVS\tL%d\n", tabSimb[simbolo].rot);
         break;
 
         case CHAMADA_PROCEDIMENTO:
-            geraCodigo(arq, p->filho->irmao);
+
+            simbolo = buscaSimbolo(p_i->id);
+            parametro = tabSimb[simbolo].par;
+
+            geraCodigo(arq, p_i->irmao);
+
+            if(parametro)
+                yyerror("Procedimento chamado com poucos argumentos");
+
             fprintf(arq, "\tSVCP\n");
-            fprintf(arq, "\tDSVS\tL%d\n", 0);
+            fprintf(arq, "\tDSVS\tL%d\n", tabSimb[simbolo].rot);
         break;
 
         case LISTA_ARGUMENTOS:
-            geraCodigo(arq, p->filho);
-            geraCodigo(arq, p->filho->irmao);
+
+            if(!parametro)
+                yyerror("Argumentos em excesso na chamada de rotina");
+
+            switch(parametro->mec)
+            {
+                case VAL:
+
+                    geraCodigo(arq, p_i);
+
+                    if(parametro->tip != p_i->valor)
+                        yyerror("Tipo do argumento incompatível com tipo do parâmetro");
+
+                break;
+
+                case REF:
+
+                    simbolo = buscaSimbolo(p_i->id);
+
+                    switch(tabSimb[simbolo].cat)
+                    {
+                        case VAR:
+                            fprintf(arq, "\tCREG\t%d\n", tabSimb[simbolo].dsl);
+                        break;
+
+                        case FUN:
+                        case PAR:
+                            fprintf(arq, "\tCREL\t%d\n", tabSimb[simbolo].dsl);
+                        break;
+
+                        case PRO:
+                            yyerror("Procedimentos não podem ser passadom como argumentos de rotinas");
+                        break;
+                    }
+
+                    if(parametro->tip != tabSimb[simbolo].tip)
+                        yyerror("Tipo do argumento incompatível com tipo do parâmetro");
+
+                break;
+            }
+            
+            parametro = parametro->prox;
+
+            geraCodigo(arq, p_i->irmao);
         break;
 
         case LISTA_COMANDOS:
-            p1 = p->filho;
-            p2 = p1->irmao;
-            
-            geraCodigo(arq, p1);
-            geraCodigo(arq, p2);
+            geraCodigo(arq, p_i);
+            geraCodigo(arq, p_i->irmao);
         break;
 
         case LEITURA:
-            p1 = p->filho;
-            
             fprintf(arq, "\tLEIA\n");
+
+            simbolo = buscaSimbolo(p_i->id);
+
+            switch(tabSimb[simbolo].cat)
+            {
+                case VAR:
+                    fprintf(arq, "\tARZG\t%d\n", tabSimb[simbolo].dsl);
+                break;
+
+                case FUN:
+                    fprintf(arq, "\tARZL\t%d\n", tabSimb[simbolo].dsl);
+                break;
+
+                case PAR:
+                    switch(tabSimb[simbolo].mec)
+                    {
+                        case VAL:
+                            fprintf(arq, "\tARZL\t%d\n", tabSimb[simbolo].dsl);
+                        break;
+
+                        case REF:
+                            fprintf(arq, "\tARMI\t%d\n", tabSimb[simbolo].dsl);
+                        break;
+                    }
+                break;
+
+                case PRO:
+                    yyerror("Retornos de leituras não podem ser passadas para procedimentos");
+                break;
+
+            }
         break;
 
         case ESCRITA:
-            geraCodigo(arq, p->filho);
+            geraCodigo(arq, p_i);
+            
             fprintf(arq, "\tESCR\n");
         break;
 
         case REPETICAO:
-            p1 = p->filho;
-            p2 = p1->irmao;
+            fprintf(arq, "L%d\tNADA\n", empilha(n_rotulos++));
+            geraCodigo(arq, p_i);
 
-            if(p1->retorno != LOG)
+            if(p_i->valor != LOG)
                 yyerror("Expressão de comando de repetição precisa ter valor lógico");
 
-            fprintf(arq, "L%d\tNADA\n", empilha(nRotulos++));
-            geraCodigo(arq, p1);
-
-            fprintf(arq, "\tDSVF\tL%d\n", empilha(nRotulos++));
-            geraCodigo(arq, p2);
+            fprintf(arq, "\tDSVF\tL%d\n", empilha(n_rotulos++));
+            geraCodigo(arq, p_i->irmao);
 
             aux = desempilha();
             fprintf(arq, "\tDSVS\tL%d\n", desempilha());
             fprintf(arq, "L%d\tNADA\n", aux);
+
         break;
 
         case SELECAO:
-            p1 = p->filho;
-            p2 = p1->irmao;
 
-            // Caso o bloco "então" seja vazio
-            if(p2) p3 = p2->irmao;
+            // Gera código para avaliar a expressão lógica
+            geraCodigo(arq, p_i);
 
-            if(p1->retorno != LOG)
+            // Se o retorno da expressão não for lógica, dispara erro.
+            if(p_i->valor != LOG)
                 yyerror("Expressão de comando de seleção precisa ter valor lógico");
 
-            geraCodigo(arq, p1);
+            fprintf(arq, "\tDSVF\tL%d\n", empilha(n_rotulos++));
 
-            fprintf(arq, "\tDSVF\tL%d\n", empilha(nRotulos++));
-
-            geraCodigo(arq, p2);
+            // Gera código do "então"
+            geraCodigo(arq, p_i->irmao); 
 
             aux = desempilha();
-            fprintf(arq, "\tDSVS\tL%d\n", empilha(nRotulos++));
+            fprintf(arq, "\tDSVS\tL%d\n", empilha(n_rotulos++));
             fprintf(arq, "L%d\tNADA\n", aux);
 
-            geraCodigo(arq, p3);
+            // Gera código do "senão", caso ele exista
+            if(p_i->irmao) 
+                geraCodigo(arq, p_i->irmao->irmao);
 
             fprintf(arq, "L%d\tNADA\n", desempilha());
 
         break;
 
         case ATRIBUICAO:
-            p1 = p->filho;
-            p2 = p1->irmao;
+            geraCodigo(arq, p_i->irmao);
 
-            if(p1->retorno != p2->retorno)
+            simbolo = buscaSimbolo(p_i->id);
+
+            if(tabSimb[simbolo].tip != p_i->irmao->valor)
                 yyerror("Comando de atribuição precisa ter tipos compatíveis");
 
-            geraCodigo(arq, p2);
+            switch(tabSimb[simbolo].cat)
+            {
+                case VAR:
+                    fprintf(arq, "\tARZG\t%d\n", tabSimb[simbolo].dsl);
+                break;
+
+                case FUN:
+                    fprintf(arq, "\tARZL\t%d\n", tabSimb[simbolo].dsl);
+                break;
+
+                case PAR:
+                    switch(tabSimb[simbolo].mec)
+                    {
+                        case VAL:
+                            fprintf(arq, "\tARZL\t%d\n", tabSimb[simbolo].dsl);
+                        break;
+
+                        case REF:
+                            fprintf(arq, "\tARMI\t%d\n", tabSimb[simbolo].dsl);
+                        break;
+                    }
+                break;
+
+                case PRO:
+                    yyerror("Procedimentos não podem ser utilizados do lado esquerdo de atribuições");
+                break;
+            }
 
         break;
 
         case MULTIPLICACAO:
-            p1 = p->filho;
-            p2 = p1->irmao;
+            geraCodigo(arq, p_i);
+            geraCodigo(arq, p_i->irmao);
 
-            if(p1->retorno != INT || p2->retorno != INT)
+            if(p_i->valor != INT || p_i->irmao->valor != INT)
                 yyerror("Somente valores inteiros podem ser multiplicados");
-
-            geraCodigo(arq, p1);
-            geraCodigo(arq, p2);
+            
             fprintf(arq, "\tMULT\n");
         break;
 
         case DIVISAO:
-            p1 = p->filho;
-            p2 = p1->irmao;
+            geraCodigo(arq, p_i);
+            geraCodigo(arq, p_i->irmao);
 
-            if(p1->retorno != INT || p2->retorno != INT)
+            if(p_i->valor != INT || p_i->irmao->valor != INT)
                 yyerror("Somente valores inteiros podem ser divididos");
-
-            geraCodigo(arq, p1);
-            geraCodigo(arq, p2);
+            
             fprintf(arq, "\tDIVI\n");
         break;
 
         case SOMA:
-            p1 = p->filho;
-            p2 = p1->irmao;
+            geraCodigo(arq, p_i);
+            geraCodigo(arq, p_i->irmao);
 
-            if(p1->retorno != INT || p2->retorno != INT)
+            if(p_i->valor != INT || p_i->irmao->valor != INT)
                 yyerror("Somente valores inteiros podem ser somados");
-
-            geraCodigo(arq, p1);
-            geraCodigo(arq, p2);
+            
             fprintf(arq, "\tSOMA\n");
+
         break;
-
+        
         case SUBTRACAO:
-            p1 = p->filho;
-            p2 = p1->irmao;
 
-            if(p1->retorno != INT || p2->retorno != INT)
+            geraCodigo(arq, p_i);
+            geraCodigo(arq, p_i->irmao);
+
+            if(p_i->valor != INT || p_i->irmao->valor != INT)
                 yyerror("Somente valores inteiros podem ser subtraídos");
-
-            geraCodigo(arq, p1);
-            geraCodigo(arq, p2);
+            
             fprintf(arq, "\tSUBT\n");
         break;
 
         case COMPARA_MAIOR:
-            p1 = p->filho;
-            p2 = p1->irmao;
 
-            if(p1->retorno != INT || p2->retorno != INT)
+            geraCodigo(arq, p_i);
+            geraCodigo(arq, p_i->irmao);
+
+            if(p_i->valor != INT || p_i->irmao->valor != INT)
                 yyerror("Operador de maior precisa de dois valores inteiros");
 
-            geraCodigo(arq, p1);
-            geraCodigo(arq, p2);
             fprintf(arq, "\tCMMA\n");
+
         break;
 
         case COMPARA_MENOR:
-            p1 = p->filho;
-            p2 = p1->irmao;
 
-            if(p1->retorno != INT || p2->retorno != INT)
+            geraCodigo(arq, p_i);
+            geraCodigo(arq, p_i->irmao);
+
+            if(p_i->valor != INT || p_i->irmao->valor != INT)
                 yyerror("Operador de menor precisa de dois valores inteiros");
 
-            geraCodigo(arq, p1);
-            geraCodigo(arq, p2);
             fprintf(arq, "\tCMME\n");
+
         break;
 
         case COMPARA_IGUAL:
-            p1 = p->filho;
-            p2 = p1->irmao;
 
-            if(p1->retorno != p2->retorno)
+            geraCodigo(arq, p_i);
+            geraCodigo(arq, p_i->irmao);
+
+            if(p_i->valor != p_i->irmao->valor)
                 yyerror("Operador de igualdade precisa ter valores tipos compatíveis");
 
-            geraCodigo(arq, p1);
-            geraCodigo(arq, p2);
             fprintf(arq, "\tCMIG\n");
+
         break;
 
         case CONJUNCAO:
-            p1 = p->filho;
-            p2 = p1->irmao;
+            geraCodigo(arq, p_i);
+            geraCodigo(arq, p_i->irmao);
 
-            if(p1->retorno != LOG || p2->retorno != LOG)
-                yyerror("Operador de conjunção precisa de dois valores lógicos");
-
-            geraCodigo(arq, p1);
-            geraCodigo(arq, p2);
+            if(p_i->valor != LOG || p_i->irmao->valor != LOG)
+                yyerror("Operador de conjunção precisa de valores lógicos");
+            
             fprintf(arq, "\tCONJ\n");
+
         break;
 
         case DISJUNCAO:
-            p1 = p->filho;
-            p2 = p1->irmao;
+            geraCodigo(arq, p_i);
+            geraCodigo(arq, p_i->irmao);
 
-            if(p1->retorno != LOG || p2->retorno != LOG)
-                yyerror("Operador de disjunção precisa de dois valores lógicos");
-
-            geraCodigo(arq, p1);
-            geraCodigo(arq, p2);
+            if(p_i->valor != LOG || p_i->irmao->valor != LOG)
+                yyerror("Operador de disjunção precisa de valores lógicos");
+            
             fprintf(arq, "\tDISJ\n");
+
         break;
 
         case NEGACAO:
-            p1 = p->filho;
+            geraCodigo(arq, p_i);
 
-            if(p1->retorno != LOG)
+            if(p_i->valor != LOG)
                 yyerror("Somente valores lógicos podem ser negados");
 
-            geraCodigo(arq, p1);
             fprintf(arq, "\tNEGA\n");
         break;
 
@@ -409,6 +592,37 @@ void geraCodigo(FILE *arq, ptno p){
         break;
 
         case IDENTIFICADOR:
+            simbolo = buscaSimbolo(p->id);
+            
+            switch(tabSimb[simbolo].cat)
+            {
+                case VAR:
+                    fprintf(arq, "\tCRVG\t%d\n", tabSimb[simbolo].dsl);
+                break;
+
+                case FUN:
+                    fprintf(arq, "\tCRVL\t%d\n", tabSimb[simbolo].dsl);
+                break;
+
+                case PAR:
+                    switch(tabSimb[simbolo].mec)
+                    {
+                        case VAL:
+                            fprintf(arq, "\tCRVL\t%d\n", tabSimb[simbolo].dsl);
+                        break;
+
+                        case REF:
+                            fprintf(arq, "\tCRVI\t%d\n", tabSimb[simbolo].dsl);
+                        break;
+                    }
+                break;
+
+                case PRO:
+                    yyerror("Procedimentos não podem ser utilizados em expressões");
+                break;
+            }
+
+        p->valor = tabSimb[simbolo].tip;
 
         break;
     }

@@ -1,0 +1,11 @@
+programa parametros
+proc somatudo ( inteiro a 
+                inteiro b
+                inteiro c
+                inteiro d)
+inicio
+    escreva a + b + c + d
+fimproc
+inicio
+    somatudo(10 3 4 8)
+fimprograma
