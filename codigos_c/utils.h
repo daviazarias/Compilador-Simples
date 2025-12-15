@@ -11,17 +11,53 @@
 #ifndef _H_UTILS
 #define _H_UTILS
 
+// AUSÊNCIA DE VALOR
+#ifndef VAZIO
+#define VAZIO -1
+#endif
+
+// ESCOPO
+#define GLOBAL 0
+#define LOCAL 1
+
+// CATEGORIA
+#define VAR 0
+#define PRO 1
+#define FUN 2
+#define PAR 3
+
+// MECANISMO
+#define REF 0
+#define VAL 1
+
+typedef struct listaPars {
+    int tip;
+    int mec;
+    struct listaPars *prox;
+} listaPars;
+
 typedef struct {
     char id[100];
-    int end;
+    int esc;
+    int dsl;
+    int rot;
+    int cat;
     int tip;
+    int mec;
+    listaPars *par;
 } elemTabSimb;
 
-void inserirSimbolo(elemTabSimb elem);
+elemTabSimb* criarSimbolo(char id[], int esc, int dsl, int rot, int cat, int tip, int mec);
+listaPars** recuperarLista(int ind);
+void atualizarDeslocamento(int indice, int dsl);
+void inserirSimbolo(elemTabSimb* elem);
 int buscaSimbolo(char *id);
-int empilha(int valor);
-int desempilha(void);
-int espiarPilha(void);
-void testaTipos(int tipoA, int tipoB, int ret);
+int removerSimbolos(int qtd);
+
+long empilha(long valor);
+long desempilha(void);
+
+listaPars* criarPar(int tip, int mec);
+void inserirPar(listaPars** lista, listaPars* novoPar);
 
 #endif

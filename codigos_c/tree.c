@@ -13,24 +13,23 @@
 #include "utils.h"
 #include "tree.h"
 
-#define logico(x)   ((x == 1) ? 'V' : 'F')
-
-extern elemTabSimb tabSimb[];
+#define texto(x) (x ? x : "")
 
 static void escreverNos(FILE*,ptno);
 static void escreverLigacoes(FILE*,ptno);
 
-extern int n_identificadores;
-static int nRotulos = 0;
-static int aux;
+extern void yyerror(char*);
+extern int yylineno;
+extern elemTabSimb tabSimb[];
 
-#define N_VARIAVEIS n_identificadores
+static int nRotulos = 1;
+static int aux;
 
 static char tipos[QTD_TIPOS][32] = 
     {"programa",                // 0
      "declaracao de variaveis", // 1
      "lista comandos",          // 2
-     "tipo",                    // 3  - VALOR ENUM (0 ou 1)
+     "tipo",                    // 3
      "lista variaveis",         // 4
      "leitura",                 // 5
      "escrita",                 // 6
@@ -47,16 +46,36 @@ static char tipos[QTD_TIPOS][32] =
      "e",                       // 17
      "ou",                      // 18
      "nao",                     // 19
-     "numero",                  // 20 - VALOR NUMERICO
-     "logico",                  // 21 - VALOR LOGICO (0 ou 1)
-     "variavel",                // 22 - VALOR STRING
-     "identificador"            // 23 - VALOR STRING
+     "numero",                  // 20
+     "logico",                  // 21
+     "identificador",           // 22
+     "funcao",                  // 23
+     "procedimento",            // 24
+     "lista_rotinas",           // 25
+     "chamada_funcao",          // 26
+     "chamada_procedimento",    // 27
+     "lista_parametros",        // 28
+     "lista_argumentos",        // 29
+     "referencia",              // 30
+     "parametro"                // 31
     };      
 
-ptno criaNo(int tipo, int valor){
+    // inserirSimbolo(
+    //             criarSimbolo(atomo, // Identificador
+    //             GLOBAL,             // Escopo
+    //             n_identificadores,  // Deslocamento
+    //             VAZIO,              // Rótulo
+    //             VAR,                // Categoria
+    //             tipo,               // Tipo
+    //             VAZIO               // Mecanismo
+    //             )
+    //         );     
+     
+ptno criaNo(int tipo, int retorno, char* id){
     ptno n = (ptno) malloc(sizeof(struct no));
     n->tipo = tipo;
-    n->valor = valor;
+    n->retorno = retorno;
+    n->id = id;
     n->filho = n->irmao = NULL;
     return n;
 }
@@ -82,31 +101,7 @@ static void escreverNos(FILE* dot, ptno raiz){
 
     if(!raiz) return;
 
-    fprintf(dot, "\tn%p [label = \"%s | ", raiz, tipos[raiz->tipo]);
-
-    switch(raiz->tipo){
-
-        case NUMERO:
-            fprintf(dot, "%d\"];\n", raiz->valor);
-        break;
-
-        case LOGICO:
-            fprintf(dot, "%c\"];\n", logico(raiz->valor));
-        break;
-        
-        case TIPO:
-            fprintf(dot, "%s\"];\n", (raiz->valor == TIPO_INT) ? "inteiro" : "logico");    
-        break;
-
-        case VARIAVEL:
-        case IDENTIFICADOR:
-            fprintf(dot, "%s\"];\n", tabSimb[raiz->valor + 1].id);
-        break;
-
-        default:
-            fprintf(dot, "\"];\n");
-        break;
-    }
+    fprintf(dot, "\tn%p [label = \"%s | %s\"]\n", raiz, tipos[raiz->tipo], texto(raiz->id));
 
     escreverNos(dot, raiz->filho);
     escreverNos(dot, raiz->irmao);
@@ -129,6 +124,7 @@ void desalocarArvore(ptno raiz){
     for(ptno n = raiz->filho; n; n = n->irmao)
         desalocarArvore(n);
 
+    if(raiz->id) free(raiz->id);
     free(raiz);
 }
 
@@ -145,26 +141,74 @@ void geraCodigo(FILE *arq, ptno p){
     switch(p->tipo){
 
         case PROGRAMA:
-            p1 = p->filho;
-            p2 = p1->irmao;
+        
+            p2 = p->filho->irmao;
 
-            // Caso o programa não tenha comandos (sintaticamente correto)
-            if(p2) p3 = p2->irmao;
-            
             fprintf(arq, "\tINPP\n");
 
-            if(N_VARIAVEIS)
-                fprintf(arq, "\tAMEM\t%d\n", N_VARIAVEIS);
+            if(p2->tipo == DECLARACAO_VARIAVEIS)
+                fprintf(arq, "\tAMEM\t%d\n", 0);
 
-            // Se o programa não tiver variáveis, a lista
-            // de comandos estará em p2, enquanto p3 é nulo
-            geraCodigo(arq, p3 ? p3 : p2);
+            for(ptno p_i = p2; p_i; p_i = p_i->irmao)
+            {
+                if(p_i->tipo == LISTA_COMANDOS)
+                    fprintf(arq, "L0\tNADA\n");
 
-            if(N_VARIAVEIS)
-                fprintf(arq, "\tDMEM\t%d\n", N_VARIAVEIS);
+                geraCodigo(arq, p_i);
+            }
+
+            if(p2->tipo == DECLARACAO_VARIAVEIS)
+                fprintf(arq, "\tDMEM\t%d\n", 0);
 
             fprintf(arq, "\tFIMP");
 
+        break;
+
+        case LISTA_ROTINAS:
+            p1 = p->filho;
+            p2 = p1->irmao;
+
+            fprintf(arq, "\tDSVS\tL0\n");
+
+            geraCodigo(arq, p1);
+            geraCodigo(arq, p2);
+        break;
+
+        case FUNCAO:
+            fprintf(arq, "L%d\tENSP\n", nRotulos++);
+
+            for(p1 = p->filho; p1->irmao; p1 = p1->irmao);
+            geraCodigo(arq, p1);
+
+            fprintf(arq, "\tRTSP\t%d\n", 1 /* FIXME */);
+        break;
+
+        case PROCEDIMENTO:
+            fprintf(arq, "L%d\tENSP\n", nRotulos++);
+
+            for(p1 = p->filho; p1->irmao; p1 = p1->irmao);
+            geraCodigo(arq, p1);
+
+            fprintf(arq, "\tRTSP\t%d\n", 0);
+        break;
+
+        case CHAMADA_FUNCAO:
+            fprintf(arq, "\tAMEM\t1\n");
+            geraCodigo(arq, p->filho->irmao);
+
+            fprintf(arq, "\tSVCP\n");
+            fprintf(arq, "\tDSVS\tL%d\n", 0);
+        break;
+
+        case CHAMADA_PROCEDIMENTO:
+            geraCodigo(arq, p->filho->irmao);
+            fprintf(arq, "\tSVCP\n");
+            fprintf(arq, "\tDSVS\tL%d\n", 0);
+        break;
+
+        case LISTA_ARGUMENTOS:
+            geraCodigo(arq, p->filho);
+            geraCodigo(arq, p->filho->irmao);
         break;
 
         case LISTA_COMANDOS:
@@ -177,18 +221,21 @@ void geraCodigo(FILE *arq, ptno p){
 
         case LEITURA:
             p1 = p->filho;
-            fprintf(arq, "\tLEIA\n\tARZG\t%d\n", p1->valor);
+            
+            fprintf(arq, "\tLEIA\n");
         break;
 
         case ESCRITA:
-            p1 = p->filho;
-            geraCodigo(arq, p1);
+            geraCodigo(arq, p->filho);
             fprintf(arq, "\tESCR\n");
         break;
 
         case REPETICAO:
             p1 = p->filho;
             p2 = p1->irmao;
+
+            if(p1->retorno != LOG)
+                yyerror("Expressão de comando de repetição precisa ter valor lógico");
 
             fprintf(arq, "L%d\tNADA\n", empilha(nRotulos++));
             geraCodigo(arq, p1);
@@ -205,8 +252,11 @@ void geraCodigo(FILE *arq, ptno p){
             p1 = p->filho;
             p2 = p1->irmao;
 
-            // Caso o bloco "então" seja vazio (sintaticamente correto)
+            // Caso o bloco "então" seja vazio
             if(p2) p3 = p2->irmao;
+
+            if(p1->retorno != LOG)
+                yyerror("Expressão de comando de seleção precisa ter valor lógico");
 
             geraCodigo(arq, p1);
 
@@ -228,13 +278,19 @@ void geraCodigo(FILE *arq, ptno p){
             p1 = p->filho;
             p2 = p1->irmao;
 
+            if(p1->retorno != p2->retorno)
+                yyerror("Comando de atribuição precisa ter tipos compatíveis");
+
             geraCodigo(arq, p2);
-            fprintf(arq, "\tARZG\t%d\n", p1->valor);
+
         break;
 
         case MULTIPLICACAO:
             p1 = p->filho;
             p2 = p1->irmao;
+
+            if(p1->retorno != INT || p2->retorno != INT)
+                yyerror("Somente valores inteiros podem ser multiplicados");
 
             geraCodigo(arq, p1);
             geraCodigo(arq, p2);
@@ -245,6 +301,9 @@ void geraCodigo(FILE *arq, ptno p){
             p1 = p->filho;
             p2 = p1->irmao;
 
+            if(p1->retorno != INT || p2->retorno != INT)
+                yyerror("Somente valores inteiros podem ser divididos");
+
             geraCodigo(arq, p1);
             geraCodigo(arq, p2);
             fprintf(arq, "\tDIVI\n");
@@ -253,6 +312,9 @@ void geraCodigo(FILE *arq, ptno p){
         case SOMA:
             p1 = p->filho;
             p2 = p1->irmao;
+
+            if(p1->retorno != INT || p2->retorno != INT)
+                yyerror("Somente valores inteiros podem ser somados");
 
             geraCodigo(arq, p1);
             geraCodigo(arq, p2);
@@ -263,6 +325,9 @@ void geraCodigo(FILE *arq, ptno p){
             p1 = p->filho;
             p2 = p1->irmao;
 
+            if(p1->retorno != INT || p2->retorno != INT)
+                yyerror("Somente valores inteiros podem ser subtraídos");
+
             geraCodigo(arq, p1);
             geraCodigo(arq, p2);
             fprintf(arq, "\tSUBT\n");
@@ -271,6 +336,9 @@ void geraCodigo(FILE *arq, ptno p){
         case COMPARA_MAIOR:
             p1 = p->filho;
             p2 = p1->irmao;
+
+            if(p1->retorno != INT || p2->retorno != INT)
+                yyerror("Operador de maior precisa de dois valores inteiros");
 
             geraCodigo(arq, p1);
             geraCodigo(arq, p2);
@@ -281,6 +349,9 @@ void geraCodigo(FILE *arq, ptno p){
             p1 = p->filho;
             p2 = p1->irmao;
 
+            if(p1->retorno != INT || p2->retorno != INT)
+                yyerror("Operador de menor precisa de dois valores inteiros");
+
             geraCodigo(arq, p1);
             geraCodigo(arq, p2);
             fprintf(arq, "\tCMME\n");
@@ -289,6 +360,9 @@ void geraCodigo(FILE *arq, ptno p){
         case COMPARA_IGUAL:
             p1 = p->filho;
             p2 = p1->irmao;
+
+            if(p1->retorno != p2->retorno)
+                yyerror("Operador de igualdade precisa ter valores tipos compatíveis");
 
             geraCodigo(arq, p1);
             geraCodigo(arq, p2);
@@ -299,6 +373,9 @@ void geraCodigo(FILE *arq, ptno p){
             p1 = p->filho;
             p2 = p1->irmao;
 
+            if(p1->retorno != LOG || p2->retorno != LOG)
+                yyerror("Operador de conjunção precisa de dois valores lógicos");
+
             geraCodigo(arq, p1);
             geraCodigo(arq, p2);
             fprintf(arq, "\tCONJ\n");
@@ -308,6 +385,9 @@ void geraCodigo(FILE *arq, ptno p){
             p1 = p->filho;
             p2 = p1->irmao;
 
+            if(p1->retorno != LOG || p2->retorno != LOG)
+                yyerror("Operador de disjunção precisa de dois valores lógicos");
+
             geraCodigo(arq, p1);
             geraCodigo(arq, p2);
             fprintf(arq, "\tDISJ\n");
@@ -316,17 +396,20 @@ void geraCodigo(FILE *arq, ptno p){
         case NEGACAO:
             p1 = p->filho;
 
+            if(p1->retorno != LOG)
+                yyerror("Somente valores lógicos podem ser negados");
+
             geraCodigo(arq, p1);
             fprintf(arq, "\tNEGA\n");
         break;
 
         case NUMERO:
         case LOGICO:
-            fprintf(arq, "\tCRCT\t%d\n", p->valor);
+            fprintf(arq, "\tCRCT\t%s\n", p->id);
         break;
 
-        case VARIAVEL:
-            fprintf(arq, "\tCRVG\t%d\n", p->valor);
+        case IDENTIFICADOR:
+
         break;
     }
 }

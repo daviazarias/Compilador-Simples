@@ -12,11 +12,13 @@ identificador  [a-zA-Z]([a-zA-Z0-9])*
 numero         [0-9]+
 espaco         [ \t\r]+
 novalinha      [\n]
+chamada        [a-zA-Z]([a-zA-Z0-9])*[\(]
 
 %x comment
 
 %{
 #include "sintatico.h"
+#include <string.h>
 
 void yyerror(char*);
 char atomo[100];
@@ -62,14 +64,26 @@ logico          { return T_LOGICO; }
 V               { return T_V; }
 F               { return T_F; }
 
+func            { return T_FUNC; }
+fimfunc         { return T_FIMFUNC; }
+proc            { return T_PROC; }
+fimproc         { return T_FIMPROC; }
+ref             { return T_REF; }
+
 {identificador} {
-                  strcpy(atomo, yytext);
+                  yylval.str = strdup(yytext);
                   return T_IDENTIF;
                 }
 
 {numero}        {
-                  strcpy(atomo, yytext);
+                  yylval.str = strdup(yytext);
                   return T_NUM;
+                }
+
+{chamada}       {
+                  *(yytext + yyleng - 1) = 0; 
+                  yylval.str = strdup(yytext);
+                  return T_CHAMADA;
                 }
 
 {espaco}        /* nao faz nada */

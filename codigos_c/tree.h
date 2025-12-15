@@ -11,7 +11,11 @@
 #ifndef _H_TREE
 #define _H_TREE
 
-#define QTD_TIPOS 24
+#define QTD_TIPOS 32
+
+#ifndef VAZIO
+#define VAZIO -1
+#endif
 
 #define PROGRAMA                0
 #define DECLARACAO_VARIAVEIS    1
@@ -35,21 +39,30 @@
 #define NEGACAO                 19
 #define NUMERO                  20
 #define LOGICO                  21
-#define VARIAVEL                22
-#define IDENTIFICADOR           23
+#define IDENTIFICADOR           22
+#define FUNCAO                  23
+#define PROCEDIMENTO            24
+#define LISTA_ROTINAS           25
+#define CHAMADA_FUNCAO          26
+#define CHAMADA_PROCEDIMENTO    27
+#define LISTA_PARAMETROS        28
+#define LISTA_ARGUMENTOS        29 
+#define REFERENCIA              30
+#define PARAMETRO               31
 
-#define TIPO_LOG 0
-#define TIPO_INT 1
+#define LOG 0
+#define INT 1
 
 typedef struct no *ptno;
 
 struct no {
     int tipo;
-    int valor;
+    int retorno;
+    char* id;
     ptno filho, irmao;
 };
 
-ptno criaNo(int tipo, int valor);
+ptno criaNo(int tipo, int retorno, char* id);
 void adicionaFilho(ptno pai, ptno filho);
 void geraDot(FILE* dot, ptno arvore);
 void desalocarArvore(ptno raiz);

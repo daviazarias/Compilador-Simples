@@ -22,16 +22,9 @@ int yylex(void);
 void yyerror(char*);
 
 extern FILE *yyin, *yyout;
-extern char atomo[];
 extern int yylineno;
-extern elemTabSimb tabSimb[];
 
-elemTabSimb elemTab;
-
-ptno raiz = NULL;
-int n_identificadores = 0;
-static int aux;
-static int tipo;
+static ptno raiz = NULL;
 
 %}
 
@@ -75,6 +68,12 @@ static int tipo;
 %token T_INTEIRO
 %token T_NAO
 %token T_NUM
+%token T_FUNC
+%token T_FIMFUNC
+%token T_PROC
+%token T_FIMPROC
+%token T_REF
+%token T_CHAMADA
 
 %start programa
 
@@ -87,14 +86,19 @@ static int tipo;
 %type <arvore> programa cabecalho variaveis declaracao_variaveis lista_comandos 
 %type <arvore> tipo lista_variaveis comando leitura escrita repeticao selecao
 %type <arvore> atribuicao expressao termo 
+%type <arvore> rotinas lista_rotinas rotina funcao procedimento chamada_funcao chamada_procedimento
+%type <arvore> lista_argumentos argumento lista_parametros parametro mecanismo
+
+%type <str> T_IDENTIF T_CHAMADA T_NUM
 
 %%
 
 programa
-    : cabecalho variaveis T_INICIO lista_comandos T_FIM
+    : cabecalho variaveis rotinas T_INICIO lista_comandos T_FIM
         {
-            $$ = criaNo(PROGRAMA, -1);
-            adicionaFilho($$, $4);
+            $$ = criaNo(PROGRAMA, VAZIO, NULL);
+            adicionaFilho($$, $5);
+            adicionaFilho($$, $3);
             adicionaFilho($$, $2);
             adicionaFilho($$, $1);
 
@@ -105,24 +109,19 @@ programa
 cabecalho
     : T_PROGRAMA T_IDENTIF 
         {
-            strcpy(elemTab.id, atomo);
-            elemTab.end = -1;
-            elemTab.tip = -1;
-            inserirSimbolo(elemTab);
-
-            $$ = criaNo(IDENTIFICADOR, -1);
+            $$ = criaNo(IDENTIFICADOR, VAZIO, $2);
         }
     ;
 
 variaveis
-    : {$$ = NULL;}
-    | declaracao_variaveis {$$ = $1;}
+    :                       {$$ = NULL;}
+    | declaracao_variaveis  {$$ = $1;}
     ;
 
 declaracao_variaveis
     : tipo lista_variaveis declaracao_variaveis
         {
-            $$ = criaNo(DECLARACAO_VARIAVEIS, -1);
+            $$ = criaNo(DECLARACAO_VARIAVEIS, VAZIO, NULL);
 
             adicionaFilho($$,$3);
             adicionaFilho($$,$2);
@@ -130,7 +129,7 @@ declaracao_variaveis
         }
     | tipo lista_variaveis
         {
-            $$ = criaNo(DECLARACAO_VARIAVEIS, -1);
+            $$ = criaNo(DECLARACAO_VARIAVEIS, VAZIO, NULL);
 
             adicionaFilho($$,$2);
             adicionaFilho($$,$1);
@@ -138,187 +137,224 @@ declaracao_variaveis
     ;
 
 tipo
-    : T_LOGICO  { $$ = criaNo(TIPO, TIPO_LOG); tipo = TIPO_LOG; }
-    | T_INTEIRO { $$ = criaNo(TIPO, TIPO_INT); tipo = TIPO_INT; }
+    : T_LOGICO  { $$ = criaNo(TIPO, VAZIO, strdup("logico")); }
+    | T_INTEIRO { $$ = criaNo(TIPO, VAZIO, strdup("inteiro")); }
     ;
 
 lista_variaveis
-    : lista_variaveis T_IDENTIF 
-        { 
-          strcpy(elemTab.id, atomo); 
-          elemTab.end = n_identificadores;
-          elemTab.tip = tipo;
-          inserirSimbolo(elemTab);
+    : T_IDENTIF lista_variaveis 
+        {        
+            $$ = criaNo(LISTA_VARIAVEIS, VAZIO, NULL);
 
-          $$ = criaNo(LISTA_VARIAVEIS, -1);
-
-          adicionaFilho($$, criaNo(VARIAVEL, n_identificadores++));
-          adicionaFilho($$, $1);
+            adicionaFilho($$, $2);
+            adicionaFilho($$, criaNo(IDENTIFICADOR, VAZIO, $1));
         }     
 
     | T_IDENTIF
         { 
-          strcpy(elemTab.id, atomo); 
-          elemTab.end = n_identificadores;
-          elemTab.tip = tipo;
-          inserirSimbolo(elemTab);
+            $$ = criaNo(LISTA_VARIAVEIS, VAZIO, NULL);
 
-          $$ = criaNo(LISTA_VARIAVEIS, -1);
-
-          adicionaFilho($$, criaNo(VARIAVEL, n_identificadores++));
+            adicionaFilho($$, criaNo(IDENTIFICADOR, VAZIO, $1));
         }     
+    ;
+
+rotinas
+    :               { $$ = NULL; }
+    | lista_rotinas { $$ = $1;   }
+    ;
+
+lista_rotinas
+    : rotina lista_rotinas
+        {
+            $$ = criaNo(LISTA_ROTINAS, VAZIO, NULL);
+            adicionaFilho($$, $2);
+            adicionaFilho($$, $1);
+        }
+    | rotina 
+        {
+            $$ = criaNo(LISTA_ROTINAS, VAZIO, NULL);
+            adicionaFilho($$, $1);
+        }
+    ;
+
+rotina
+    : funcao       { $$ = $1; }
+    | procedimento { $$ = $1; }
+    ;
+
+funcao
+    : T_FUNC tipo T_IDENTIF T_ABRE lista_parametros T_FECHA T_INICIO lista_comandos T_FIMFUNC
+        {
+            $$ = criaNo(FUNCAO, VAZIO, $3);
+            adicionaFilho($$, $8);
+            adicionaFilho($$, $5);
+            adicionaFilho($$, $2);
+        }
+    ;
+
+procedimento
+    : T_PROC T_IDENTIF T_ABRE lista_parametros T_FECHA T_INICIO lista_comandos T_FIMPROC
+        {
+            $$ = criaNo(PROCEDIMENTO, VAZIO, $2);
+            adicionaFilho($$, $7);
+            adicionaFilho($$, $4);
+        }
+    ;
+
+lista_parametros
+    : { $$ = NULL; }
+    | parametro lista_parametros
+        {
+            $$ = criaNo(LISTA_PARAMETROS, VAZIO, NULL);
+            adicionaFilho($$, $2);
+            adicionaFilho($$, $1);
+        }
+    ;
+
+parametro
+    : mecanismo tipo T_IDENTIF
+        {
+            $$ = criaNo(PARAMETRO, VAZIO, NULL);
+            adicionaFilho($$, criaNo(IDENTIFICADOR, VAZIO, $3));
+            adicionaFilho($$, $2);
+            adicionaFilho($$, $1);
+        }
+    ;
+
+mecanismo
+    :       { $$ = NULL; }
+    | T_REF { $$ = criaNo(REFERENCIA, VAZIO, NULL); }
     ;
 
 lista_comandos
     : /* vazia */ { $$ = NULL; }
-    | comando lista_comandos
+    | comando lista_comandos 
         {
-            $$ = criaNo(LISTA_COMANDOS, -1);
+            $$ = criaNo(LISTA_COMANDOS, VAZIO, NULL);
             adicionaFilho($$, $2);
             adicionaFilho($$, $1);
         }
     ;
 
 comando
-    : leitura       {$$ = $1;}
-    | escrita       {$$ = $1;}
-    | atribuicao    {$$ = $1;}
-    | repeticao     {$$ = $1;}
-    | selecao       {$$ = $1;}
+    : leitura               {$$ = $1;}
+    | escrita               {$$ = $1;}
+    | atribuicao            {$$ = $1;}
+    | repeticao             {$$ = $1;}
+    | selecao               {$$ = $1;}
+    | chamada_procedimento  {$$ = $1;}
+    ;
+
+lista_argumentos
+    : { $$ = NULL; }
+    | lista_argumentos argumento
+        {
+            $$ = criaNo(LISTA_ARGUMENTOS, VAZIO, NULL);
+            adicionaFilho($$, $2);
+            adicionaFilho($$, $1);
+        }
+    ;
+
+argumento
+    : expressao { $$ = $1; }
     ;
 
 leitura
     : T_LEIA T_IDENTIF
-        { 
-            $$ = criaNo(LEITURA, -1); 
-            adicionaFilho($$, criaNo(VARIAVEL, tabSimb[buscaSimbolo(atomo)].end));
+        {
+            $$ = criaNo(LEITURA, VAZIO, NULL); 
+            adicionaFilho($$, criaNo(IDENTIFICADOR, VAZIO, $2));
         }
     ;
 
 escrita
     : T_ESCREVA expressao
         {
-            desempilha();
-
-            $$ = criaNo(ESCRITA, -1);
+            $$ = criaNo(ESCRITA, VAZIO, NULL);
             adicionaFilho($$, $2);
         }
     ;
 
 repeticao
-    : T_ENQTO expressao
+    : T_ENQTO expressao T_FACA lista_comandos T_FIMENQTO
         {
-            if(desempilha() != TIPO_LOG)
-                yyerror("Estrutura de repetição precisa de expressão lógica");
-        }  
-        T_FACA lista_comandos T_FIMENQTO
-        {
-            $$ = criaNo(REPETICAO, -1);
-            adicionaFilho($$, $5);
+            $$ = criaNo(REPETICAO, VAZIO, NULL);
+            adicionaFilho($$, $4);
             adicionaFilho($$, $2);
         }
     ;
 
 selecao
-    : T_SE expressao
+    : T_SE expressao T_ENTAO lista_comandos T_SENAO lista_comandos T_FIMSE
         {
-            if(desempilha() != TIPO_LOG)
-                yyerror("Estrutura de condição precisa de expressão lógica");
-        }
-    T_ENTAO lista_comandos T_SENAO lista_comandos T_FIMSE
-        {
-            $$ = criaNo(SELECAO, -1);
-            adicionaFilho($$, $7);
-            adicionaFilho($$, $5);
+            $$ = criaNo(SELECAO, VAZIO, NULL);
+            adicionaFilho($$, $6);
+            adicionaFilho($$, $4);
             adicionaFilho($$, $2);
         }
     ;
 
 atribuicao
-    : T_IDENTIF { aux = tabSimb[buscaSimbolo(atomo)].end; } T_ATRIB expressao
-        { 
-            if(desempilha() != tabSimb[aux + 1].tip)
-                yyerror("Tipos incompatíveis na atribuição");
-
-            $$ = criaNo(ATRIBUICAO, -1);
-            adicionaFilho($$, $4);
-            adicionaFilho($$, criaNo(VARIAVEL, aux));
+    : T_IDENTIF T_ATRIB expressao
+        {
+            $$ = criaNo(ATRIBUICAO, VAZIO, NULL);
+            adicionaFilho($$, $3);
+            adicionaFilho($$, criaNo(IDENTIFICADOR, VAZIO, $1));
         }
     ;
 
 expressao
     : expressao T_VEZES expressao
         { 
-            testaTipos(TIPO_INT, TIPO_INT, TIPO_INT);
-
-            $$ = criaNo(MULTIPLICACAO, -1);
+            $$ = criaNo(MULTIPLICACAO, INT, NULL);
             adicionaFilho($$, $3);
             adicionaFilho($$, $1);
         }
     | expressao T_DIV expressao
         { 
-            testaTipos(TIPO_INT, TIPO_INT, TIPO_INT);
-            
-            $$ = criaNo(DIVISAO, -1);
+            $$ = criaNo(DIVISAO, INT, NULL);
             adicionaFilho($$, $3);
             adicionaFilho($$, $1);
         }
     | expressao T_MAIS expressao
         { 
-            testaTipos(TIPO_INT, TIPO_INT, TIPO_INT);
-
-            $$ = criaNo(SOMA, -1);
+            $$ = criaNo(SOMA, INT, NULL);
             adicionaFilho($$, $3);
             adicionaFilho($$, $1);
         }
     | expressao T_MENOS expressao
         { 
-            testaTipos(TIPO_INT, TIPO_INT, TIPO_INT);
-
-            $$ = criaNo(SUBTRACAO, -1);
+            $$ = criaNo(SUBTRACAO, INT, NULL);
             adicionaFilho($$, $3);
             adicionaFilho($$, $1);
         }
     | expressao T_MAIOR expressao
         { 
-            testaTipos(TIPO_INT, TIPO_INT, TIPO_LOG);
-
-            $$ = criaNo(COMPARA_MAIOR, -1);
+            $$ = criaNo(COMPARA_MAIOR, LOG, NULL);
             adicionaFilho($$, $3);
             adicionaFilho($$, $1);
         }
     | expressao T_MENOR expressao
         { 
-            testaTipos(TIPO_INT, TIPO_INT, TIPO_LOG);
-            
-            $$ = criaNo(COMPARA_MENOR, -1);
+            $$ = criaNo(COMPARA_MENOR, LOG, NULL);
             adicionaFilho($$, $3);
             adicionaFilho($$, $1);
         }
     | expressao T_IGUAL expressao
         { 
-            if(desempilha() != desempilha())
-                yyerror("Comparando expressões de tipos distintos");
-
-            empilha(TIPO_LOG);
-
-            $$ = criaNo(COMPARA_IGUAL, -1);
+            $$ = criaNo(COMPARA_IGUAL, LOG, NULL);
             adicionaFilho($$, $3);
             adicionaFilho($$, $1);
         }
     | expressao T_E expressao
         { 
-            testaTipos(TIPO_LOG, TIPO_LOG, TIPO_LOG);
-
-            $$ = criaNo(CONJUNCAO, -1);
+            $$ = criaNo(CONJUNCAO, LOG, NULL);
             adicionaFilho($$, $3);
             adicionaFilho($$, $1);
         }
     | expressao T_OU expressao
         { 
-            testaTipos(TIPO_LOG, TIPO_LOG, TIPO_LOG);
-
-            $$ = criaNo(DISJUNCAO, -1);
+            $$ = criaNo(DISJUNCAO, LOG, NULL);
             adicionaFilho($$, $3);
             adicionaFilho($$, $1);
         }
@@ -326,36 +362,31 @@ expressao
     ;
 
 termo
-    : T_IDENTIF    
-        { 
-            elemTab = tabSimb[buscaSimbolo(atomo)];
-            $$ = criaNo(VARIAVEL, elemTab.end); 
-            empilha(elemTab.tip); 
-        }
-    | T_NUM         
-        { 
-            $$ = criaNo(NUMERO, atoi(atomo)); 
-            empilha(TIPO_INT);      
-        }
-    | T_V           
-        { 
-            $$ = criaNo(LOGICO, 1);
-            empilha(TIPO_LOG);    
-        }
-    | T_F           
-        {
-            $$ = criaNo(LOGICO, 0);  
-            empilha(TIPO_LOG); 
-        }
-    | T_NAO termo   
-        {
-            if(espiarPilha() != TIPO_LOG)
-                yyerror("Negação só pode ser aplicada a valores lógicos");
+    : T_IDENTIF                 { $$ = criaNo(IDENTIFICADOR, VAZIO, $1); } 
+    | T_NUM                     { $$ = criaNo(NUMERO, INT, $1); }
+    | T_V                       { $$ = criaNo(LOGICO, LOG, strdup("V")); }
+    | T_F                       { $$ = criaNo(LOGICO, LOG, strdup("F")); }
+    | T_NAO termo               { $$ = criaNo(NEGACAO, LOG, NULL); adicionaFilho($$, $2); }
+    | T_ABRE expressao T_FECHA  { $$ = $2; }
+    | chamada_funcao            { $$ = $1; }
+    ;
 
-            $$ = criaNo(NEGACAO, -1);
+chamada_procedimento
+    : T_CHAMADA lista_argumentos T_FECHA
+        {
+            $$ = criaNo(CHAMADA_PROCEDIMENTO, VAZIO, NULL);
             adicionaFilho($$, $2);
+            adicionaFilho($$, criaNo(IDENTIFICADOR, VAZIO, $1));
         }
-    | T_ABRE expressao T_FECHA { $$ = $2; }
+    ;
+
+chamada_funcao
+    : T_CHAMADA lista_argumentos T_FECHA
+        {
+            $$ = criaNo(CHAMADA_FUNCAO, VAZIO, NULL);
+            adicionaFilho($$, $2);
+            adicionaFilho($$, criaNo(IDENTIFICADOR, VAZIO, $1));
+        }
     ;
 
 %%
@@ -401,7 +432,7 @@ int main(int argc, char **argv){
     yyparse();
 
     geraDot(dot, raiz);
-    geraCodigo(yyout, raiz);
+    /*geraCodigo(yyout, raiz);*/
 
     sprintf(cmd, "dot -Tsvg %s -o %s &", nameDot, strcat(nameSvg, ".svg"));
     system(cmd);
