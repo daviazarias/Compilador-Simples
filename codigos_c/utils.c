@@ -80,6 +80,8 @@ int inserirSimbolo(elemTabSimb* elem){
     if(i != -1) return -1;
 
     tabSimb[++topoTab] = *elem;
+
+    return topoTab;
 }
 
 void removerSimbolos(int qtd){

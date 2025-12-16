@@ -451,10 +451,10 @@ int main(int argc, char **argv){
     dot   = fopen(nameDot, "w");
     geraDot(dot, raiz);
 
-    geraCodigo(yyout, raiz);
-
     sprintf(cmd, "dot -T" FORMATO_IMG " %s -o %s &", nameDot, nameImg);
     system(cmd);
+
+    geraCodigo(yyout, raiz);
 
     desalocarArvore(raiz);
     fclose(yyin);

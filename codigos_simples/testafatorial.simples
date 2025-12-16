@@ -11,6 +11,6 @@ programa testafatorial
 
     inicio
         leia n
-        escreva fatorial(l)
+        escreva fatorial(n)
 
 fimprograma

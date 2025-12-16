@@ -14,20 +14,24 @@ all: $(COMPILADOR)
 $(COMPILADOR): $(NOMES_OBJ)
 	gcc $^ -o $@
 
+# DIRETÓRIOS
+
 $(OBJ):
 	mkdir $@
 
 # CÓDIGOS .c e .h
 
-$(FONTE)/lexico.c: $(ANALISADORES)/lexico.l $(OBJ)
+$(FONTE)/lexico.c: $(ANALISADORES)/lexico.l
 	lex -o $@ $<  
 
-$(FONTE)/sintatico.c: $(ANALISADORES)/sintatico.y $(OBJ)
+$(FONTE)/sintatico.c: $(ANALISADORES)/sintatico.y
 	bison -d $< -o $@ 
+
+$(FONTE)/sintatico.h: $(FONTE)/sintatico.c
 
 # CÓDIGOS .o
 
-$(OBJ)/lexico.o: $(FONTE)/lexico.c $(FONTE)/sintatico.c $(OBJ)
+$(OBJ)/lexico.o: $(FONTE)/lexico.c $(FONTE)/sintatico.h $(OBJ)
 	gcc $< -c -o $@
 
 $(OBJ)/%.o: $(FONTE)/%.c $(OBJ)

@@ -17,14 +17,6 @@
 #define VAZIO -1
 #endif
 
-#ifndef __tipos_definidos
-
-#define LOG 0
-#define INT 1
-
-#define __tipos_definidos
-#endif
-
 #define PROGRAMA                0
 #define DECLARACAO_VARIAVEIS    1
 #define LISTA_COMANDOS          2

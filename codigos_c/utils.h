@@ -27,14 +27,8 @@
 #define PAR 3
 
 // TIPO
-
-#ifndef __tipos_definidos
-
 #define LOG 0
 #define INT 1
-
-#define __tipos_definidos
-#endif
 
 // MECANISMO
 #define REF 0
