@@ -84,7 +84,7 @@ static void empilharArgumentos(FILE* arq, ptno p, int s, char *erroPoucosArgs){
     fprintf(arq, "\tDSVS\tL%d\n", tabSimb[s].rot);
 }
 
-void gerarPrograma(PARAMS){
+static void gerarPrograma(PARAMS){
 
     fprintf(arq, "\tINPP\n");
 
@@ -110,14 +110,14 @@ void gerarPrograma(PARAMS){
     fprintf(arq, "\tFIMP");
 }
 
-void gerarDeclaracaoVariaveis(PARAMS){
+static void gerarDeclaracaoVariaveis(PARAMS){
 
     tipo = p_i->valor;
     geraCodigo(arq, p_i->irmao);
     geraCodigo(arq, p_i->irmao->irmao);
 }
 
-void gerarListaVariaveis(PARAMS){
+static void gerarListaVariaveis(PARAMS){
     if(0 > inserirSimbolo(
             criarSimbolo(
                 p_i->id,                // Identificador
@@ -135,7 +135,7 @@ void gerarListaVariaveis(PARAMS){
     else fprintf(arq, "\tAMEM\t%d\n", n_variaveis);
 }
 
-void gerarListaRotinas(PARAMS){
+static void gerarListaRotinas(PARAMS){
     n_parametros = 0;
 
     // Gera código da rotina atual
@@ -148,7 +148,7 @@ void gerarListaRotinas(PARAMS){
     geraCodigo(arq, p_i->irmao);
 }
 
-void gerarDeclaracaoFuncao(PARAMS){
+static void gerarDeclaracaoFuncao(PARAMS){
     int simbolo = inserirSimbolo(
             criarSimbolo(
                 p->id,                  // Identificador
@@ -184,7 +184,7 @@ void gerarDeclaracaoFuncao(PARAMS){
     fprintf(arq, "\tRTSP\t%d\n", n_parametros);
 }
 
-void gerarDeclaracaoProcedimento(PARAMS){
+static void gerarDeclaracaoProcedimento(PARAMS){
     int simbolo = inserirSimbolo(
                 criarSimbolo(
                     p->id,                  // Identificador
@@ -216,7 +216,7 @@ void gerarDeclaracaoProcedimento(PARAMS){
     fprintf(arq, "\tRTSP\t%d\n", n_parametros);
 }
 
-void gerarListaParametros(PARAMS){
+static void gerarListaParametros(PARAMS){
     // Por questão de eficiência, a função de inserir parâmetros na lista
     // o faz de trás para frente, o que torna necessário visitar os parâmetros
     // ao contrário na árvore
@@ -224,7 +224,7 @@ void gerarListaParametros(PARAMS){
     geraCodigo(arq, p_i);
 }
 
-void gerarParametro(PARAMS){
+static void gerarParametro(PARAMS){
 
     if(0 > inserirSimbolo(
             criarSimbolo(
@@ -242,7 +242,7 @@ void gerarParametro(PARAMS){
     inserirPar(listaParametros, criarPar(p_i->irmao->valor, p_i->valor));
 }
 
-void gerarChamadaFuncao(PARAMS){
+static void gerarChamadaFuncao(PARAMS){
     // Busca o identificador da função e verifica se já foi definido
     int simbolo = buscaSimbolo(p_i->id);
 
@@ -257,7 +257,7 @@ void gerarChamadaFuncao(PARAMS){
     empilharArgumentos(arq, p, simbolo, "Função chamada com poucos argumentos");
 }
 
-void gerarChamadaProcedimento(PARAMS){
+static void gerarChamadaProcedimento(PARAMS){
     // Busca o identificador do procedimento e verifica se já foi definido
     int simbolo = buscaSimbolo(p_i->id);
 
@@ -267,7 +267,7 @@ void gerarChamadaProcedimento(PARAMS){
     empilharArgumentos(arq, p, simbolo, "Procedimento chamado com poucos argumentos");
 }
 
-void gerarListaArgumentos(PARAMS){
+static void gerarListaArgumentos(PARAMS){
 
     int simbolo;
 
@@ -333,12 +333,12 @@ void gerarListaArgumentos(PARAMS){
     geraCodigo(arq, p_i->irmao);
 }
 
-void gerarListaComandos(PARAMS){
+static void gerarListaComandos(PARAMS){
     geraCodigo(arq, p_i);
     geraCodigo(arq, p_i->irmao);
 }
 
-void gerarLeitura(PARAMS){
+static void gerarLeitura(PARAMS){
     // Comando de leitura
     fprintf(arq, "\tLEIA\n");
 
@@ -346,7 +346,7 @@ void gerarLeitura(PARAMS){
     armazenar(arq, p_i, NULL, "Retornos de leituras não podem ser passadas para procedimentos");
 }
 
-void gerarEscrita(PARAMS){
+static void gerarEscrita(PARAMS){
     // Avalia a expressão cujo resultado deve ser escrito
     geraCodigo(arq, p_i);
 
@@ -354,7 +354,7 @@ void gerarEscrita(PARAMS){
     fprintf(arq, "\tESCR\n");
 }
 
-void gerarRepeticao(PARAMS){
+static void gerarRepeticao(PARAMS){
     // Rótulo para a avaliação da expressão lógica
     fprintf(arq, "L%d\tNADA\n", empilhaRot(n_rotulos++));
     geraCodigo(arq, p_i);
@@ -377,7 +377,7 @@ void gerarRepeticao(PARAMS){
     fprintf(arq, "L%d\tNADA\n", aux);
 }
 
-void gerarSelecao(PARAMS){
+static void gerarSelecao(PARAMS){
     // Gera código para avaliar a expressão lógica
     geraCodigo(arq, p_i);
 
@@ -405,7 +405,7 @@ void gerarSelecao(PARAMS){
     fprintf(arq, "L%d\tNADA\n", desempilha().rotulo);
 }
 
-void gerarAtribuicao(PARAMS){
+static void gerarAtribuicao(PARAMS){
     // Gera código da avaliação da expressão do lado direito da atribuição
     geraCodigo(arq, p_i->irmao);
 
@@ -419,7 +419,7 @@ void gerarAtribuicao(PARAMS){
     );
 }
 
-void gerarMultiplicacao(PARAMS){
+static void gerarMultiplicacao(PARAMS){
     geraCodigo(arq, p_i);
     geraCodigo(arq, p_i->irmao);
 
@@ -429,7 +429,7 @@ void gerarMultiplicacao(PARAMS){
     fprintf(arq, "\tMULT\n");
 }
 
-void gerarDivisao(PARAMS){
+static void gerarDivisao(PARAMS){
     geraCodigo(arq, p_i);
     geraCodigo(arq, p_i->irmao);
 
@@ -440,7 +440,7 @@ void gerarDivisao(PARAMS){
 }
 
 
-void gerarSoma(PARAMS){
+static void gerarSoma(PARAMS){
     geraCodigo(arq, p_i);
     geraCodigo(arq, p_i->irmao);
 
@@ -450,7 +450,7 @@ void gerarSoma(PARAMS){
     fprintf(arq, "\tSOMA\n");
 }
 
-void gerarSubtracao(PARAMS){
+static void gerarSubtracao(PARAMS){
     geraCodigo(arq, p_i);
     geraCodigo(arq, p_i->irmao);
 
@@ -460,7 +460,7 @@ void gerarSubtracao(PARAMS){
     fprintf(arq, "\tSUBT\n");
 }
 
-void gerarComparaMaior(PARAMS){
+static void gerarComparaMaior(PARAMS){
     geraCodigo(arq, p_i);
     geraCodigo(arq, p_i->irmao);
 
@@ -470,7 +470,7 @@ void gerarComparaMaior(PARAMS){
     fprintf(arq, "\tCMMA\n");
 }
 
-void gerarComparaMenor(PARAMS){
+static void gerarComparaMenor(PARAMS){
     geraCodigo(arq, p_i);
     geraCodigo(arq, p_i->irmao);
 
@@ -480,7 +480,7 @@ void gerarComparaMenor(PARAMS){
     fprintf(arq, "\tCMME\n");
 }
 
-void gerarComparaIgual(PARAMS){
+static void gerarComparaIgual(PARAMS){
     geraCodigo(arq, p_i);
     geraCodigo(arq, p_i->irmao);
 
@@ -490,7 +490,7 @@ void gerarComparaIgual(PARAMS){
     fprintf(arq, "\tCMIG\n");
 }
 
-void gerarDisjuncao(PARAMS){
+static void gerarDisjuncao(PARAMS){
     geraCodigo(arq, p_i);
     geraCodigo(arq, p_i->irmao);
 
@@ -500,7 +500,7 @@ void gerarDisjuncao(PARAMS){
     fprintf(arq, "\tDISJ\n");
 }
 
-void gerarConjuncao(PARAMS){
+static void gerarConjuncao(PARAMS){
     geraCodigo(arq, p_i);
     geraCodigo(arq, p_i->irmao);
 
@@ -510,7 +510,7 @@ void gerarConjuncao(PARAMS){
     fprintf(arq, "\tCONJ\n");
 }
 
-void gerarNegacao(PARAMS){
+static void gerarNegacao(PARAMS){
     geraCodigo(arq, p_i);
 
     if(p_i->valor != LOG)
@@ -519,11 +519,11 @@ void gerarNegacao(PARAMS){
     fprintf(arq, "\tNEGA\n");
 }
 
-void gerarNumLogico(PARAMS){
+static void gerarNumLogico(PARAMS){
     fprintf(arq, "\tCRCT\t%s\n", p->id);
 }
 
-void gerarIdentificador(PARAMS){
+static void gerarIdentificador(PARAMS){
 
     int simbolo = buscaSimbolo(p->id);
 
@@ -550,7 +550,7 @@ void gerarIdentificador(PARAMS){
     p->valor = tabSimb[simbolo].tip;
 }
 
-void nada(PARAMS){}
+static void nada(PARAMS){}
 
 void (*geracaoCodigo[QTD_TIPOS])(PARAMS) = {
     gerarPrograma,                  // PROGRAMA                 00
