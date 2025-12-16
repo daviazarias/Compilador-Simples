@@ -54,7 +54,7 @@ typedef struct {
 elemTabSimb* criarSimbolo(char id[], int esc, int dsl, int rot, int cat, int tip, int mec);
 listaPars** recuperarLista(int ind);
 void atualizarDeslocamento(int indice, int dsl);
-void inserirSimbolo(elemTabSimb* elem);
+int inserirSimbolo(elemTabSimb* elem);
 int buscaSimbolo(char *id);
 void removerSimbolos(int qtd);
 

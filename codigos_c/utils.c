@@ -64,9 +64,7 @@ int buscaSimbolo(char *id){
     for(i = topoTab; i >= 0 && strcmp(tabSimb[i].id, id); i--);
 
     if(i == -1){
-        char msg[200];
-        sprintf(msg, "O identificador %s não foi definido.", id);
-        yyerror(msg);
+        return -1;
     }
 
     exibirTabela();
@@ -74,7 +72,7 @@ int buscaSimbolo(char *id){
     return i;
 }
 
-void inserirSimbolo(elemTabSimb* elem){
+int inserirSimbolo(elemTabSimb* elem){
 
     int i;
 
@@ -84,9 +82,7 @@ void inserirSimbolo(elemTabSimb* elem){
     for(i = topoTab; i >= 0 && (strcmp(tabSimb[i].id, elem->id) || tabSimb[i].esc != elem->esc); i--);
 
     if(i != -1){
-        char msg[200];
-        sprintf(msg, "Dupla definição de %s", elem->id);
-        yyerror(msg);
+        return -1;
     }
 
     tabSimb[++topoTab] = *elem;

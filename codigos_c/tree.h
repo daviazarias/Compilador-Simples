@@ -55,6 +55,7 @@ typedef struct no *ptno;
 struct no {
     int tipo;
     int valor;
+    int linha;
     char* id;
     ptno filho, irmao;
 };

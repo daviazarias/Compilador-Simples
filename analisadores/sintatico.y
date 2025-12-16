@@ -20,6 +20,7 @@
 
 int yylex(void);
 void yyerror(char*);
+void _yyerror(int,char*);
 
 extern FILE *yyin, *yyout;
 extern int yylineno;
@@ -285,11 +286,16 @@ repeticao
     ;
 
 selecao
-    : T_SE expressao T_ENTAO lista_comandos T_SENAO lista_comandos T_FIMSE
+    : T_SE expressao T_ENTAO comando lista_comandos T_SENAO lista_comandos T_FIMSE
         {
             $$ = criaNo(SELECAO, VAZIO, NULL);
-            adicionaFilho($$, $6);
-            adicionaFilho($$, $4);
+            adicionaFilho($$, $7);
+
+            ptno n = criaNo(LISTA_COMANDOS, VAZIO, NULL);
+            adicionaFilho($$, n);
+            adicionaFilho(n, $5);
+            adicionaFilho(n, $4);
+
             adicionaFilho($$, $2);
         }
     ;
@@ -391,9 +397,14 @@ chamada_funcao
 
 %%
 
+void _yyerror(int linha, char *msg) {
+    fprintf(stderr, "%d: Erro: %s\n", linha, msg);
+    desalocarArvore(raiz);
+    exit(1);
+}
+
 void yyerror(char *msg) {
     fprintf(stderr, "%d: Erro: %s\n", yylineno, msg);
-    desalocarArvore(raiz);
     exit(1);
 }
 

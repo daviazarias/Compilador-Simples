@@ -19,7 +19,7 @@
 static void escreverNos(FILE*,ptno);
 static void escreverLigacoes(FILE*,ptno);
 
-extern void yyerror(char*);
+extern void _yyerror(int,char*);
 extern int yylineno;
 extern elemTabSimb tabSimb[];
 
@@ -72,6 +72,7 @@ ptno criaNo(int tipo, int valor, char* id){
     ptno n = (ptno) malloc(sizeof(struct no));
     n->tipo = tipo;
     n->valor = valor;
+    n->linha = yylineno;
     n->id = id;
     n->filho = n->irmao = NULL;
     return n;
@@ -126,6 +127,18 @@ void desalocarArvore(ptno raiz){
 }
 
 // --------------------- GERAÇÃO DE CÓDIGO -------------------------
+
+static void idNaoEncontrado(ptno p){
+    char msg[200];
+    sprintf(msg, "\"%s\" não foi definido", p->id);
+    _yyerror(p->linha, msg);
+}
+
+static void idDuplicado(ptno p){
+    char msg[200];
+    sprintf(msg, "Dupla definição de \"%s\"", p->id);
+    _yyerror(p->linha, msg);
+}
    
 void geraCodigo(FILE *arq, ptno p){
 
@@ -163,17 +176,19 @@ void geraCodigo(FILE *arq, ptno p){
 
         case LISTA_VARIAVEIS:
 
-            inserirSimbolo(
-                criarSimbolo(
-                    p_i->id,                // Identificador
-                    GLOBAL,                 // Escopo
-                    n_variaveis++,          // Deslocamento
-                    VAZIO,                  // Rótulo       
-                    VAR,                    // Categoria
-                    tipo,                   // Tipo
-                    VAZIO                   // Mecanismo
-                )
-            );   
+            if(0 > inserirSimbolo(
+                    criarSimbolo(
+                        p_i->id,                // Identificador
+                        GLOBAL,                 // Escopo
+                        n_variaveis++,          // Deslocamento
+                        VAZIO,                  // Rótulo       
+                        VAR,                    // Categoria
+                        tipo,                   // Tipo
+                        VAZIO                   // Mecanismo
+                    )
+                )   
+            ) idDuplicado(p_i);
+             
 
             if(p_i->irmao) geraCodigo(arq, p_i->irmao);
             else fprintf(arq, "\tAMEM\t%d\n", n_variaveis);
@@ -202,17 +217,18 @@ void geraCodigo(FILE *arq, ptno p){
         break;
 
         case PARAMETRO:
-            inserirSimbolo(
-                criarSimbolo(
-                    p_i->irmao->irmao->id,  // Identificador
-                    LOCAL,                  // Escopo
-                    -(3 + n_parametros++),  // Deslocamento
-                    VAZIO,                  // Rótulo       
-                    PAR,                    // Categoria
-                    p_i->irmao->valor,      // Tipo
-                    p_i->valor              // Mecanismo
+            if(0 > inserirSimbolo(
+                    criarSimbolo(
+                        p_i->irmao->irmao->id,  // Identificador
+                        LOCAL,                  // Escopo
+                        -(3 + n_parametros++),  // Deslocamento
+                        VAZIO,                  // Rótulo       
+                        PAR,                    // Categoria
+                        p_i->irmao->valor,      // Tipo
+                        p_i->valor              // Mecanismo
+                    )
                 )
-            );
+            ) idDuplicado(p_i->irmao->irmao);
 
             inserirPar(listaParametros, criarPar(p_i->irmao->valor, p_i->valor));
 
@@ -220,21 +236,26 @@ void geraCodigo(FILE *arq, ptno p){
 
         case FUNCAO:
 
-            inserirSimbolo(
-                criarSimbolo(
-                    p->id,                  // Identificador
-                    GLOBAL,                 // Escopo
-                    VAZIO,                  // Deslocamento -- DESCONHECIDO
-                    n_rotulos,              // Rótulo       
-                    FUN,                    // Categoria
-                    p_i->valor,             // Tipo
-                    VAZIO                   // Mecanismo
+            if(0 > inserirSimbolo(
+                    criarSimbolo(
+                        p->id,                  // Identificador
+                        GLOBAL,                 // Escopo
+                        VAZIO,                  // Deslocamento -- DESCONHECIDO
+                        n_rotulos,              // Rótulo       
+                        FUN,                    // Categoria
+                        p_i->valor,             // Tipo
+                        VAZIO                   // Mecanismo
+                    )
                 )
-            );   
+            ) idDuplicado(p);
             
             fprintf(arq, "L%d\tENSP\n", n_rotulos++);
 
             simbolo = buscaSimbolo(p->id);
+
+            if(simbolo < 0)
+                idNaoEncontrado(p);
+
             listaParametros = recuperarLista(simbolo);
 
             geraCodigo(arq, p_i->irmao);
@@ -249,21 +270,26 @@ void geraCodigo(FILE *arq, ptno p){
 
         case PROCEDIMENTO:
             
-            inserirSimbolo(
-                criarSimbolo(
-                    p->id,                  // Identificador
-                    GLOBAL,                 // Escopo
-                    VAZIO,                  // Deslocamento 
-                    n_rotulos,              // Rótulo       
-                    PRO,                    // Categoria
-                    VAZIO,                  // Tipo
-                    VAZIO                   // Mecanismo
+            if(0 > inserirSimbolo(
+                    criarSimbolo(
+                        p->id,                  // Identificador
+                        GLOBAL,                 // Escopo
+                        VAZIO,                  // Deslocamento 
+                        n_rotulos,              // Rótulo       
+                        PRO,                    // Categoria
+                        VAZIO,                  // Tipo
+                        VAZIO                   // Mecanismo
+                    )
                 )
-            );     
+            ) idDuplicado(p);
             
             fprintf(arq, "L%d\tENSP\n", n_rotulos++);
 
             simbolo = buscaSimbolo(p->id);
+
+            if(simbolo < 0)
+                idNaoEncontrado(p);
+
             listaParametros = recuperarLista(simbolo);
 
             geraCodigo(arq, p_i);
@@ -277,6 +303,13 @@ void geraCodigo(FILE *arq, ptno p){
             fprintf(arq, "\tAMEM\t1\n");
 
             simbolo = buscaSimbolo(p_i->id);
+
+            if(simbolo < 0){
+                char msg[200];
+                sprintf(msg, "\"%s\" não foi definido", p->id);
+                _yyerror(p_i->linha, msg);
+            }
+
             parametro = tabSimb[simbolo].par;
 
             p->valor = tabSimb[simbolo].tip;
@@ -284,7 +317,7 @@ void geraCodigo(FILE *arq, ptno p){
             geraCodigo(arq, p_i->irmao);
 
             if(parametro)
-                yyerror("Função chamada com poucos argumentos");
+                _yyerror(p->linha, "Função chamada com poucos argumentos");
 
             fprintf(arq, "\tSVCP\n");
             fprintf(arq, "\tDSVS\tL%d\n", tabSimb[simbolo].rot);
@@ -293,12 +326,16 @@ void geraCodigo(FILE *arq, ptno p){
         case CHAMADA_PROCEDIMENTO:
 
             simbolo = buscaSimbolo(p_i->id);
+
+            if(simbolo < 0)
+                idNaoEncontrado(p_i);
+
             parametro = tabSimb[simbolo].par;
 
             geraCodigo(arq, p_i->irmao);
 
             if(parametro)
-                yyerror("Procedimento chamado com poucos argumentos");
+                _yyerror(p->linha, "Procedimento chamado com poucos argumentos");
 
             fprintf(arq, "\tSVCP\n");
             fprintf(arq, "\tDSVS\tL%d\n", tabSimb[simbolo].rot);
@@ -307,7 +344,7 @@ void geraCodigo(FILE *arq, ptno p){
         case LISTA_ARGUMENTOS:
 
             if(!parametro)
-                yyerror("Argumentos em excesso na chamada de rotina");
+                _yyerror(p_i->linha, "Argumentos em excesso na chamada de rotina");
 
             switch(parametro->mec)
             {
@@ -316,13 +353,16 @@ void geraCodigo(FILE *arq, ptno p){
                     geraCodigo(arq, p_i);
 
                     if(parametro->tip != p_i->valor)
-                        yyerror("Tipo do argumento incompatível com tipo do parâmetro");
+                        _yyerror(p_i->linha, "Tipo do argumento incompatível com tipo do parâmetro");
 
                 break;
 
                 case REF:
 
                     simbolo = buscaSimbolo(p_i->id);
+
+                    if(simbolo < 0)
+                        idNaoEncontrado(p_i);
 
                     switch(tabSimb[simbolo].cat)
                     {
@@ -336,12 +376,12 @@ void geraCodigo(FILE *arq, ptno p){
                         break;
 
                         case PRO:
-                            yyerror("Procedimentos não podem ser passadom como argumentos de rotinas");
+                            _yyerror(p_i->linha, "Procedimentos não podem ser passadom como argumentos de rotinas");
                         break;
                     }
 
                     if(parametro->tip != tabSimb[simbolo].tip)
-                        yyerror("Tipo do argumento incompatível com tipo do parâmetro");
+                        _yyerror(p_i->linha, "Tipo do argumento incompatível com tipo do parâmetro");
 
                 break;
             }
@@ -360,6 +400,9 @@ void geraCodigo(FILE *arq, ptno p){
             fprintf(arq, "\tLEIA\n");
 
             simbolo = buscaSimbolo(p_i->id);
+
+            if(simbolo < 0)
+                idNaoEncontrado(p_i);
 
             switch(tabSimb[simbolo].cat)
             {
@@ -385,7 +428,7 @@ void geraCodigo(FILE *arq, ptno p){
                 break;
 
                 case PRO:
-                    yyerror("Retornos de leituras não podem ser passadas para procedimentos");
+                    _yyerror(p_i->linha, "Retornos de leituras não podem ser passadas para procedimentos");
                 break;
 
             }
@@ -402,7 +445,7 @@ void geraCodigo(FILE *arq, ptno p){
             geraCodigo(arq, p_i);
 
             if(p_i->valor != LOG)
-                yyerror("Expressão de comando de repetição precisa ter valor lógico");
+                _yyerror(p_i->linha, "Expressão de comando de repetição precisa ter valor lógico");
 
             fprintf(arq, "\tDSVF\tL%d\n", empilha(n_rotulos++));
             geraCodigo(arq, p_i->irmao);
@@ -420,7 +463,7 @@ void geraCodigo(FILE *arq, ptno p){
 
             // Se o retorno da expressão não for lógica, dispara erro.
             if(p_i->valor != LOG)
-                yyerror("Expressão de comando de seleção precisa ter valor lógico");
+                _yyerror(p_i->linha, "Expressão de comando de seleção precisa ter valor lógico");
 
             fprintf(arq, "\tDSVF\tL%d\n", empilha(n_rotulos++));
 
@@ -444,8 +487,11 @@ void geraCodigo(FILE *arq, ptno p){
 
             simbolo = buscaSimbolo(p_i->id);
 
+            if(simbolo < 0)
+                idNaoEncontrado(p_i);
+
             if(tabSimb[simbolo].tip != p_i->irmao->valor)
-                yyerror("Comando de atribuição precisa ter tipos compatíveis");
+                _yyerror(p_i->linha, "Comando de atribuição precisa ter tipos compatíveis");
 
             switch(tabSimb[simbolo].cat)
             {
@@ -471,7 +517,7 @@ void geraCodigo(FILE *arq, ptno p){
                 break;
 
                 case PRO:
-                    yyerror("Procedimentos não podem ser utilizados do lado esquerdo de atribuições");
+                    _yyerror(p_i->linha, "Procedimentos não podem ser utilizados do lado esquerdo de atribuições");
                 break;
             }
 
@@ -482,7 +528,7 @@ void geraCodigo(FILE *arq, ptno p){
             geraCodigo(arq, p_i->irmao);
 
             if(p_i->valor != INT || p_i->irmao->valor != INT)
-                yyerror("Somente valores inteiros podem ser multiplicados");
+                _yyerror(p->linha, "Somente valores inteiros podem ser multiplicados");
             
             fprintf(arq, "\tMULT\n");
         break;
@@ -492,7 +538,7 @@ void geraCodigo(FILE *arq, ptno p){
             geraCodigo(arq, p_i->irmao);
 
             if(p_i->valor != INT || p_i->irmao->valor != INT)
-                yyerror("Somente valores inteiros podem ser divididos");
+                _yyerror(p->linha, "Somente valores inteiros podem ser divididos");
             
             fprintf(arq, "\tDIVI\n");
         break;
@@ -502,7 +548,7 @@ void geraCodigo(FILE *arq, ptno p){
             geraCodigo(arq, p_i->irmao);
 
             if(p_i->valor != INT || p_i->irmao->valor != INT)
-                yyerror("Somente valores inteiros podem ser somados");
+                _yyerror(p->linha, "Somente valores inteiros podem ser somados");
             
             fprintf(arq, "\tSOMA\n");
 
@@ -514,7 +560,7 @@ void geraCodigo(FILE *arq, ptno p){
             geraCodigo(arq, p_i->irmao);
 
             if(p_i->valor != INT || p_i->irmao->valor != INT)
-                yyerror("Somente valores inteiros podem ser subtraídos");
+                _yyerror(p->linha, "Somente valores inteiros podem ser subtraídos");
             
             fprintf(arq, "\tSUBT\n");
         break;
@@ -525,7 +571,7 @@ void geraCodigo(FILE *arq, ptno p){
             geraCodigo(arq, p_i->irmao);
 
             if(p_i->valor != INT || p_i->irmao->valor != INT)
-                yyerror("Operador de maior precisa de dois valores inteiros");
+                _yyerror(p->linha, "Operador de maior precisa de dois valores inteiros");
 
             fprintf(arq, "\tCMMA\n");
 
@@ -537,7 +583,7 @@ void geraCodigo(FILE *arq, ptno p){
             geraCodigo(arq, p_i->irmao);
 
             if(p_i->valor != INT || p_i->irmao->valor != INT)
-                yyerror("Operador de menor precisa de dois valores inteiros");
+                _yyerror(p->linha, "Operador de menor precisa de dois valores inteiros");
 
             fprintf(arq, "\tCMME\n");
 
@@ -549,7 +595,7 @@ void geraCodigo(FILE *arq, ptno p){
             geraCodigo(arq, p_i->irmao);
 
             if(p_i->valor != p_i->irmao->valor)
-                yyerror("Operador de igualdade precisa ter valores tipos compatíveis");
+                _yyerror(p->linha, "Operador de igualdade precisa ter valores de mesmo tipo");
 
             fprintf(arq, "\tCMIG\n");
 
@@ -560,7 +606,7 @@ void geraCodigo(FILE *arq, ptno p){
             geraCodigo(arq, p_i->irmao);
 
             if(p_i->valor != LOG || p_i->irmao->valor != LOG)
-                yyerror("Operador de conjunção precisa de valores lógicos");
+                _yyerror(p->linha, "Operador de conjunção precisa de valores lógicos");
             
             fprintf(arq, "\tCONJ\n");
 
@@ -571,7 +617,7 @@ void geraCodigo(FILE *arq, ptno p){
             geraCodigo(arq, p_i->irmao);
 
             if(p_i->valor != LOG || p_i->irmao->valor != LOG)
-                yyerror("Operador de disjunção precisa de valores lógicos");
+                _yyerror(p->linha, "Operador de disjunção precisa de valores lógicos");
             
             fprintf(arq, "\tDISJ\n");
 
@@ -581,7 +627,7 @@ void geraCodigo(FILE *arq, ptno p){
             geraCodigo(arq, p_i);
 
             if(p_i->valor != LOG)
-                yyerror("Somente valores lógicos podem ser negados");
+                _yyerror(p_i->linha, "Somente valores lógicos podem ser negados");
 
             fprintf(arq, "\tNEGA\n");
         break;
@@ -593,6 +639,9 @@ void geraCodigo(FILE *arq, ptno p){
 
         case IDENTIFICADOR:
             simbolo = buscaSimbolo(p->id);
+
+            if(simbolo < 0)
+                idNaoEncontrado(p);
             
             switch(tabSimb[simbolo].cat)
             {
@@ -618,7 +667,7 @@ void geraCodigo(FILE *arq, ptno p){
                 break;
 
                 case PRO:
-                    yyerror("Procedimentos não podem ser utilizados em expressões");
+                    _yyerror(p->linha, "Procedimentos não podem ser utilizados em expressões");
                 break;
             }
 
