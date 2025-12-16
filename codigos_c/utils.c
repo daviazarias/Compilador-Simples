@@ -96,17 +96,31 @@ listaPars** recuperarLista(int ind){
 
 #define TAM_PIL 128
 
-int Pilha[TAM_PIL];
+elemPilha Pilha[TAM_PIL];
 int topoPil = 0;
 
-int empilha(int valor) {
+int empilhaRot(int rotulo) {
     if(topoPil == TAM_PIL)
         yyerror("Pilha cheia!");
-    Pilha[topoPil++] = valor;
-    return valor;
+    Pilha[topoPil++] = (elemPilha) rotulo;
+    return rotulo;
 }
 
-int desempilha(void) {
+listaPars** empilhaLista(listaPars** lista) {
+    if(topoPil == TAM_PIL)
+        yyerror("Pilha cheia!");
+    Pilha[topoPil++] = (elemPilha) lista;
+    return lista;
+}
+
+listaPars* empilhaPar(listaPars* par) {
+    if(topoPil == TAM_PIL)
+        yyerror("Pilha cheia!");
+    Pilha[topoPil++] = (elemPilha) par;
+    return par;
+}
+
+elemPilha desempilha(void) {
     if(topoPil == 0)
         yyerror("Pilha vazia!");
     return Pilha[--topoPil];

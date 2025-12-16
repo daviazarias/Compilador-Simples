@@ -97,6 +97,7 @@ programa
     : cabecalho variaveis rotinas T_INICIO lista_comandos T_FIM
         {
             $$ = criaNo(PROGRAMA, VAZIO, NULL);
+            
             adicionaFilho($$, $5);
             adicionaFilho($$, $3);
             adicionaFilho($$, $2);
@@ -249,7 +250,7 @@ lista_argumentos
             $$ = criaNo(LISTA_ARGUMENTOS, VAZIO, NULL);
             adicionaFilho($$, $2);
             adicionaFilho($$, $1);
-        }
+        }   
     ;
 
 argumento
@@ -401,7 +402,6 @@ void _yyerror(int linha, char *msg) {
 
     fprintf(stderr, "%d: Erro: %s\n", linha, msg);
 
-    remove(strcat(strcpy(nomeDot, nomePrg),".dot"));
     remove(strcat(strcpy(nomeMvs, nomePrg),".mvs"));
     
     desalocarArvore(raiz);

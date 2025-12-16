@@ -12,7 +12,7 @@ all: $(COMPILADOR)
 # EXECUTÁVEIS
 
 $(COMPILADOR): $(NOMES_OBJ)
-	gcc $^ -o $@
+	gcc $^  -g -o $@
 
 # DIRETÓRIOS
 

@@ -1,9 +1,15 @@
 programa teste
-    inteiro x
+    logico x
+func inteiro f (inteiro x)
 inicio
-    leia x
-    se x > 5 
-        entao escreva x
-        senao
-    fimse
+    f <- x + 5
+fimfunc
+
+func logico g (inteiro x)
+inicio
+    g <- x = 0
+fimfunc
+
+inicio
+   x <- g(f(f(f(6))))
 fimprograma

@@ -28,8 +28,8 @@ static int tipo;
 static int n_rotulos = 1;
 static int aux;
 
-static listaPars **listaParametros;
-static listaPars *parametro;
+static listaPars **listaParametros = NULL;
+static listaPars *parametro = NULL;
 
 static char tipos[QTD_TIPOS][32] = 
     {"programa",                // 00
@@ -171,6 +171,11 @@ static void armazenar(FILE *arq, ptno p, char* erroTipo, char* erroProc){
 
 static void empilharArgumentos(FILE* arq, ptno p, int s, char *erroPoucosArgs){
 
+    // Empilha lista de parâmetros e ponteiro de parâmetro atuais, no caso
+    // de um dos argumentos da rotina for uma função
+    empilhaPar(parametro);
+    empilhaLista(listaParametros);
+
     // Recupera o nó do primeiro parâmetro da rotina
     // Os demais nós podem ser recuperados por encadeamento a partir deste
     parametro = tabSimb[s].par;
@@ -181,6 +186,10 @@ static void empilharArgumentos(FILE* arq, ptno p, int s, char *erroPoucosArgs){
     // Caso um ou mais parâmetros não sejam pareados com argumentos na chamada
     if(parametro)
         _yyerror(p->linha, erroPoucosArgs);
+
+    // Desempilha a lista de parâmetros e ponteiro de parâmetros empilhados anteriormente
+    listaParametros = desempilha().lista;
+    parametro = desempilha().par;
 
     fprintf(arq, "\tSVCP\n");
     fprintf(arq, "\tDSVS\tL%d\n", tabSimb[s].rot);
@@ -244,7 +253,7 @@ void geraCodigo(FILE *arq, ptno p){
             ) idDuplicado(p_i);
              
             if(p_i->irmao) geraCodigo(arq, p_i->irmao);
-            else if(n_variaveis > 0) fprintf(arq, "\tAMEM\t%d\n", n_variaveis);
+            else fprintf(arq, "\tAMEM\t%d\n", n_variaveis);
 
         break;
 
@@ -376,7 +385,6 @@ void geraCodigo(FILE *arq, ptno p){
             p->valor = tabSimb[simbolo].tip;
 
             empilharArgumentos(arq, p, simbolo, "Função chamada com poucos argumentos");
-
         break;
 
         case CHAMADA_PROCEDIMENTO:
@@ -409,7 +417,6 @@ void geraCodigo(FILE *arq, ptno p){
                     // Verifica se o tipo da expressão é compatível com o do parâmetro
                     if(parametro->tip != p_i->valor)
                         _yyerror(p_i->linha, "Tipo do argumento incompatível com tipo do parâmetro");
-
                 break;
 
                 // Caso a passagem seja por referência, NÃO FAZ chamada recursiva
@@ -480,7 +487,7 @@ void geraCodigo(FILE *arq, ptno p){
 
         case REPETICAO:
             // Rótulo para a avaliação da expressão lógica
-            fprintf(arq, "L%d\tNADA\n", empilha(n_rotulos++));
+            fprintf(arq, "L%d\tNADA\n", empilhaRot(n_rotulos++));
             geraCodigo(arq, p_i);
 
             // Se o retorno da expressão não for lógica, gera erro de compilação.
@@ -488,14 +495,14 @@ void geraCodigo(FILE *arq, ptno p){
                 _yyerror(p_i->linha, "Expressão de comando de repetição precisa ter valor lógico");
 
             // Sai do laço caso a expressão seja avaliada como falsa
-            fprintf(arq, "\tDSVF\tL%d\n", empilha(n_rotulos++));
+            fprintf(arq, "\tDSVF\tL%d\n", empilhaRot(n_rotulos++));
 
             // Gera o código do corpo do laço
             geraCodigo(arq, p_i->irmao);
 
             // Código para retornar à avaliação da expressão lógica
-            aux = desempilha();
-            fprintf(arq, "\tDSVS\tL%d\n", desempilha());
+            aux = desempilha().rotulo;
+            fprintf(arq, "\tDSVS\tL%d\n", desempilha().rotulo);
 
             // Rótulo para a saída do laço
             fprintf(arq, "L%d\tNADA\n", aux);
@@ -511,22 +518,22 @@ void geraCodigo(FILE *arq, ptno p){
 
             // Se a expressão for avaliada como falsa, vá para o código do "senão",
             // ou, caso este não exista, para o fim do bloco
-            fprintf(arq, "\tDSVF\tL%d\n", empilha(n_rotulos++));
+            fprintf(arq, "\tDSVF\tL%d\n", empilhaRot(n_rotulos++));
 
             // Gera código do "então"
             geraCodigo(arq, p_i->irmao); 
 
             // Gera código do "senão", caso ele exista
             if(p_i->irmao->irmao){
-                aux = desempilha();
-                fprintf(arq, "\tDSVS\tL%d\n", empilha(n_rotulos++));
+                aux = desempilha().rotulo;
+                fprintf(arq, "\tDSVS\tL%d\n", empilhaRot(n_rotulos++));
                 fprintf(arq, "L%d\tNADA\n", aux);
 
                 geraCodigo(arq, p_i->irmao->irmao);
             }
 
             // Rótulo marcando o fim do comando de seleção
-            fprintf(arq, "L%d\tNADA\n", desempilha());
+            fprintf(arq, "L%d\tNADA\n", desempilha().rotulo);
         break;
 
         case ATRIBUICAO:
