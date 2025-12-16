@@ -22,12 +22,12 @@ $(OBJ):
 $(FONTE)/lexico.c: $(ANALISADORES)/lexico.l $(OBJ)
 	lex -o $@ $<  
 
-$(FONTE)/sintatico.h $(FONTE)/sintatico.c: $(ANALISADORES)/sintatico.y $(OBJ)
+$(FONTE)/sintatico.c: $(ANALISADORES)/sintatico.y $(OBJ)
 	bison -d $< -o $@ 
 
 # CÓDIGOS .o
 
-$(OBJ)/lexico.o: $(FONTE)/lexico.c $(FONTE)/sintatico.h $(OBJ)
+$(OBJ)/lexico.o: $(FONTE)/lexico.c $(FONTE)/sintatico.c $(OBJ)
 	gcc $< -c -o $@
 
 $(OBJ)/%.o: $(FONTE)/%.c $(OBJ)

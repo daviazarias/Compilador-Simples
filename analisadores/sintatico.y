@@ -20,9 +20,8 @@
 #define FORMATO_IMG "svg"
 #define EXT_IMG "." FORMATO_IMG
 
-int yylex(void);
 void yyerror(char*);
-void _yyerror(int,char*);
+int yylex(void);
 
 extern FILE *yyin, *yyout;
 extern int yylineno;
@@ -31,9 +30,7 @@ static ptno raiz = NULL;
 
 %}
 
-%code requires {
-    #include "tree.h"
-}
+%code requires {#include "tree.h" }
 
 %union {
     ptno arvore;
@@ -110,10 +107,7 @@ programa
     ;
 
 cabecalho
-    : T_PROGRAMA T_IDENTIF 
-        {
-            $$ = criaNo(IDENTIFICADOR, VAZIO, $2);
-        }
+    : T_PROGRAMA T_IDENTIF { $$ = criaNo(IDENTIFICADOR, VAZIO, $2); }
     ;
 
 variaveis
