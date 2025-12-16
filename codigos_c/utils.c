@@ -63,8 +63,6 @@ int buscaSimbolo(char *id){
 
     for(i = topoTab; i >= 0 && strcmp(tabSimb[i].id, id); i--);
 
-    if(i == -1) return -1;
-
     return i;
 }
 
