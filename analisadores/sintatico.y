@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "semantico.h"
 #include "tree.h"
 #include "utils.h"
 
@@ -30,7 +31,7 @@ static ptno raiz = NULL;
 
 %}
 
-%code requires {#include "tree.h" }
+%code requires { #include "tree.h" }
 
 %union {
     ptno arvore;

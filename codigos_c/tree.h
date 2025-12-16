@@ -64,6 +64,5 @@ ptno criaNo(int tipo, int valor, char* id);
 void adicionaFilho(ptno pai, ptno filho);
 void geraDot(FILE* dot, ptno arvore);
 void desalocarArvore(ptno raiz);
-void geraCodigo(FILE* arq, ptno p);
 
 #endif

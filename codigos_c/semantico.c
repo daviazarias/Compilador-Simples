@@ -1,8 +1,5 @@
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include "tree.h"
-#include "utils.h"
+#include "semantico.h"
 
 #define p_i p->filho
 #define PARAMS FILE* arq, ptno p
@@ -553,11 +550,13 @@ void gerarIdentificador(PARAMS){
     p->valor = tabSimb[simbolo].tip;
 }
 
+void nada(PARAMS){}
+
 void (*geracaoCodigo[QTD_TIPOS])(PARAMS) = {
     gerarPrograma,                  // PROGRAMA                 00
     gerarDeclaracaoVariaveis,       // DECLARACAO_VARIAVEIS     01
     gerarListaComandos,             // LISTA_COMANDOS           02
-    NULL,                           // TIPO                     03
+    nada,                           // TIPO                     03  SEM AÇÃO
     gerarListaVariaveis,            // LISTA_VARIAVEIS          04
     gerarLeitura,                   // LEITURA                  05
     gerarEscrita,                   // ESCRITA                  06
@@ -584,6 +583,10 @@ void (*geracaoCodigo[QTD_TIPOS])(PARAMS) = {
     gerarChamadaProcedimento,       // CHAMADA_PROCEDIMENTO     27
     gerarListaParametros,           // LISTA_PARAMETROS         28
     gerarListaArgumentos,           // LISTA_ARGUMENTOS         29
-    NULL,                           // MECANISMO                30
+    nada,                           // MECANISMO                30  SEM AÇÃO
     gerarParametro                  // PARAMETRO                31
 };
+
+void geraCodigo(PARAMS){
+    if(p) geracaoCodigo[p->tipo](arq,p);
+}

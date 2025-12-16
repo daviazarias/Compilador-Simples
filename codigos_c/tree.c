@@ -116,9 +116,3 @@ void desalocarArvore(ptno raiz){
     if(raiz->id) free(raiz->id);
     free(raiz);
 }
-
-// --------------------- GERAÇÃO DE CÓDIGO -------------------------
-   
-void geraCodigo(FILE *arq, ptno p){
-    if(p) geracaoCodigo[p->tipo](arq,p);
-}
