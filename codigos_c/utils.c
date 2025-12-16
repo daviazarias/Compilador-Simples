@@ -96,8 +96,8 @@ listaPars** recuperarLista(int ind){
 
 #define TAM_PIL 128
 
-long Pilha[TAM_PIL];
-long topoPil = 0;
+int Pilha[TAM_PIL];
+int topoPil = 0;
 
 int empilha(int valor) {
     if(topoPil == TAM_PIL)

@@ -32,23 +32,23 @@ static listaPars **listaParametros;
 static listaPars *parametro;
 
 static char tipos[QTD_TIPOS][32] = 
-    {"programa",                // 0
-     "declaracao de variaveis", // 1
-     "lista comandos",          // 2
-     "tipo",                    // 3
-     "lista variaveis",         // 4
-     "leitura",                 // 5
-     "escrita",                 // 6
-     "repeticao",               // 7
-     "selecao",                 // 8
-     "atribuicao",              // 9
+    {"programa",                // 00
+     "declaracao_de_variaveis", // 01
+     "lista_comandos",          // 02
+     "tipo",                    // 03
+     "lista_variaveis",         // 04
+     "leitura",                 // 05
+     "escrita",                 // 06
+     "repeticao",               // 07
+     "selecao",                 // 08
+     "atribuicao",              // 09
      "multiplicacao",           // 10
      "divisao",                 // 11
      "soma",                    // 12
      "subtracao",               // 13
-     "compara maior",           // 14
-     "compara menor",           // 15
-     "compara igual",           // 16
+     "compara_maior",           // 14
+     "compara_menor",           // 15
+     "compara_igual",           // 16
      "e",                       // 17
      "ou",                      // 18
      "nao",                     // 19
@@ -138,6 +138,8 @@ static void idDuplicado(ptno p){
     _yyerror(p->linha, msg);
 }
 
+// "p" deve ser o identificador que referencia o local onde 
+// o valor deve ser armazenado
 static void armazenar(FILE *arq, ptno p, char* erroTipo, char* erroProc){
 
     int s = buscaSimbolo(p->id);
@@ -145,6 +147,8 @@ static void armazenar(FILE *arq, ptno p, char* erroTipo, char* erroProc){
     if(s < 0)
         idNaoEncontrado(p);
 
+    // Se "erroTipo" for NULL, pular a verificação de tipo
+    // Isso é feito para que nenhuma verificação seja feita em um comando de leitura
     if(erroTipo && tabSimb[s].tip != p->irmao->valor)
         _yyerror(p->linha, erroTipo);
 
@@ -171,7 +175,7 @@ static void empilharArgumentos(FILE* arq, ptno p, int s, char *erroPoucosArgs){
     // Os demais nós podem ser recuperados por encadeamento a partir deste
     parametro = tabSimb[s].par;
 
-    // Carregar argumentos na pilha
+    // Carrega argumentos na pilha
     geraCodigo(arq, p->filho->irmao);
 
     // Caso um ou mais parâmetros não sejam pareados com argumentos na chamada
@@ -249,34 +253,14 @@ void geraCodigo(FILE *arq, ptno p){
 
             n_parametros = 0;
 
+            // Gera código da rotina atual
             geraCodigo(arq, p_i);
-            geraCodigo(arq, p_i->irmao);
 
+            // Remove da tabela os parâmetros da rotina
             removerSimbolos(n_parametros);
 
-        break;
-
-        case LISTA_PARAMETROS:
+            // Gera código das demais rotinas
             geraCodigo(arq, p_i->irmao);
-            geraCodigo(arq, p_i);
-        break;
-
-        case PARAMETRO:
-
-            if(0 > inserirSimbolo(
-                    criarSimbolo(
-                        p_i->irmao->irmao->id,  // Identificador
-                        LOCAL,                  // Escopo
-                        -(3 + n_parametros++),  // Deslocamento
-                        VAZIO,                  // Rótulo       
-                        PAR,                    // Categoria
-                        p_i->irmao->valor,      // Tipo
-                        p_i->valor              // Mecanismo
-                    )
-                )
-            ) idDuplicado(p_i->irmao->irmao);
-
-            inserirPar(listaParametros, criarPar(p_i->irmao->valor, p_i->valor));
 
         break;
 
@@ -307,7 +291,7 @@ void geraCodigo(FILE *arq, ptno p){
             geraCodigo(arq, p_i->irmao);
 
             // Após a passagem pela lista de parâmetros, é possível saber o endereço
-            // onde deve ser armazenado o retorno da funçãp
+            // onde deve ser armazenado o retorno da função
             atualizarDeslocamento(simbolo, -(3 + n_parametros));
             
             // Gera código do corpo da função (comandos)
@@ -349,6 +333,33 @@ void geraCodigo(FILE *arq, ptno p){
 
             // Retorna para o chamador
             fprintf(arq, "\tRTSP\t%d\n", n_parametros);
+
+        break;
+
+        case LISTA_PARAMETROS:
+            // Por questão de eficiência, a função de inserir parâmetros na lista
+            // o faz de trás para frente, o que torna necessário visitar os parâmetros
+            // ao contrário na árvore
+            geraCodigo(arq, p_i->irmao);
+            geraCodigo(arq, p_i);
+        break;
+
+        case PARAMETRO:
+
+            if(0 > inserirSimbolo(
+                    criarSimbolo(
+                        p_i->irmao->irmao->id,  // Identificador
+                        LOCAL,                  // Escopo
+                        -(3 + n_parametros++),  // Deslocamento
+                        VAZIO,                  // Rótulo       
+                        PAR,                    // Categoria
+                        p_i->irmao->valor,      // Tipo
+                        p_i->valor              // Mecanismo
+                    )
+                )
+            ) idDuplicado(p_i->irmao->irmao);
+
+            inserirPar(listaParametros, criarPar(p_i->irmao->valor, p_i->valor));
 
         break;
 
@@ -647,30 +658,19 @@ void geraCodigo(FILE *arq, ptno p){
             
             switch(tabSimb[simbolo].cat)
             {
-                case VAR:
-                    fprintf(arq, "\tCRVG\t%d\n", tabSimb[simbolo].dsl);
-                break;
-
-                case FUN:
-                    fprintf(arq, "\tCRVL\t%d\n", tabSimb[simbolo].dsl);
-                break;
+                case VAR: fprintf(arq, "\tCRVG\t%d\n", tabSimb[simbolo].dsl); break;
+                case FUN: fprintf(arq, "\tCRVL\t%d\n", tabSimb[simbolo].dsl); break;
 
                 case PAR:
                     switch(tabSimb[simbolo].mec)
                     {
-                        case VAL:
-                            fprintf(arq, "\tCRVL\t%d\n", tabSimb[simbolo].dsl);
-                        break;
-
-                        case REF:
-                            fprintf(arq, "\tCRVI\t%d\n", tabSimb[simbolo].dsl);
-                        break;
+                        case VAL: fprintf(arq, "\tCRVL\t%d\n", tabSimb[simbolo].dsl); break;
+                        case REF: fprintf(arq, "\tCRVI\t%d\n", tabSimb[simbolo].dsl); break;
                     }
                 break;
 
-                case PRO:
-                    _yyerror(p->linha, "Procedimentos não podem ser utilizados em expressões");
-                break;
+                case PRO: _yyerror(p->linha, 
+                    "Procedimentos não podem ser utilizados em expressões"); break;
             }
 
         p->valor = tabSimb[simbolo].tip;
