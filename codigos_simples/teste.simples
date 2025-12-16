@@ -1,6 +1,7 @@
 programa teste
     logico x
-func inteiro f (inteiro x)
+    
+func inteiro f (inteiro x inteiro y inteiro z)
 inicio
     f <- x + 5
 fimfunc
@@ -11,5 +12,5 @@ inicio
 fimfunc
 
 inicio
-   x <- g(f(f(f(6))))
+   x <- g(f(f(1 2 3) 2 3 ))
 fimprograma

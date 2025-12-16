@@ -4,7 +4,7 @@ ANALISADORES = analisadores
 FONTE = codigos_c
 OBJ = codigos_o
 
-NOMES = utils lexico sintatico tree
+NOMES = utils tree lexico sintatico semantico
 NOMES_OBJ = $(addprefix $(OBJ)/, $(addsuffix .o, $(NOMES)))
 
 all: $(COMPILADOR)
@@ -12,7 +12,7 @@ all: $(COMPILADOR)
 # EXECUTÁVEIS
 
 $(COMPILADOR): $(NOMES_OBJ)
-	gcc $^  -g -o $@
+	gcc $^ -o $@
 
 # DIRETÓRIOS
 
