@@ -17,6 +17,8 @@
 #include "utils.h"
 
 #define NOME_PROG "simples"
+#define FORMATO_IMG "svg"
+#define EXT_IMG "." FORMATO_IMG
 
 int yylex(void);
 void yyerror(char*);
@@ -397,20 +399,28 @@ chamada_funcao
 
 %%
 
+char nomePrg[64];
+
 void _yyerror(int linha, char *msg) {
+
+    char nomeMvs[64], nomeDot[64];
+
     fprintf(stderr, "%d: Erro: %s\n", linha, msg);
+
+    remove(strcat(strcpy(nomeDot, nomePrg),".dot"));
+    remove(strcat(strcpy(nomeMvs, nomePrg),".mvs"));
+    
     desalocarArvore(raiz);
     exit(1);
 }
 
 void yyerror(char *msg) {
-    fprintf(stderr, "%d: Erro: %s\n", yylineno, msg);
-    exit(1);
+    _yyerror(yylineno, msg);
 }
 
 int main(int argc, char **argv){
 
-    char nameIn[64], nameMvs[64], nameDot[64], nameSvg[64], cmd[200];
+    char nameIn[64], nameMvs[64], nameDot[64], nameImg[64], cmd[200];
     char *p;
     FILE *dot;
 
@@ -424,10 +434,14 @@ int main(int argc, char **argv){
 
     strcpy(nameIn, "codigos_simples/");
     strcat(nameIn, argv[1]);
+    strcat(nameIn, ".simples");
 
-    strcpy(nameSvg, strcpy(nameDot, strcpy(nameMvs, argv[1])));
+    strcpy(nameImg, strcpy(nameDot, strcpy(nameMvs, strcpy(nomePrg, argv[1]))));
+    strcat(nameMvs,".mvs");
+    strcat(nameDot,".dot");
+    strcat(nameImg, EXT_IMG);
     
-    if(!(yyin = fopen(strcat(nameIn, ".simples"), "r"))){
+    if(!(yyin = fopen(nameIn, "r"))){
 
         char *arq = strstr(nameIn, argv[1]);
 
@@ -437,15 +451,15 @@ int main(int argc, char **argv){
         }
     }
 
-    yyout = fopen(strcat(nameMvs,".mvs"), "w");
-    dot   = fopen(strcat(nameDot,".dot"), "w");
-
+    yyout = fopen(nameMvs, "w");
     yyparse();
 
+    dot   = fopen(nameDot, "w");
     geraDot(dot, raiz);
+
     geraCodigo(yyout, raiz);
 
-    sprintf(cmd, "dot -Tsvg %s -o %s &", nameDot, strcat(nameSvg, ".svg"));
+    sprintf(cmd, "dot -T" FORMATO_IMG " %s -o %s &", nameDot, nameImg);
     system(cmd);
 
     desalocarArvore(raiz);

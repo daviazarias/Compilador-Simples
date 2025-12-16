@@ -47,7 +47,7 @@
 #define CHAMADA_PROCEDIMENTO    27
 #define LISTA_PARAMETROS        28
 #define LISTA_ARGUMENTOS        29 
-#define MECANISMO              30
+#define MECANISMO               30
 #define PARAMETRO               31
 
 typedef struct no *ptno;

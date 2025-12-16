@@ -20,23 +20,23 @@ void yyerror(char*);
 elemTabSimb tabSimb[TAM_TAB];
 int topoTab = -1; // indica a última posição ocupada da tabSimb
 
-void exibirPars(listaPars *lista){
-    for(listaPars* l = lista; l; l = l->prox)
-        fprintf(stderr, "[mec: %d | tip: %d] -> ", l->mec, l->tip);
-    fprintf(stderr, "[/]");
-}
+// void exibirPars(listaPars *lista){
+//     for(listaPars* l = lista; l; l = l->prox)
+//         fprintf(stderr, "[mec: %d | tip: %d] -> ", l->mec, l->tip);
+//     fprintf(stderr, "[/]");
+// }
 
-void exibirTabela(void){
-    fprintf(stderr,"\n");
-    for(int i = 0; i <= topoTab; i++){
-        elemTabSimb e = tabSimb[i];
-        fprintf(stderr, "[id: %s | esc: %d | dsl: %d | rot: %d | cat: %d | tip: %d | mec: %d | pars: ",
-            e.id, e.esc, e.dsl, e.rot, e.cat, e.tip, e.mec);
-        exibirPars(e.par);
-        fprintf(stderr, "]\n");
-    }
-    fprintf(stderr,"\n");
-}
+// void exibirTabela(void){
+//     fprintf(stderr,"\n");
+//     for(int i = 0; i <= topoTab; i++){
+//         elemTabSimb e = tabSimb[i];
+//         fprintf(stderr, "[id: %s | esc: %d | dsl: %d | rot: %d | cat: %d | tip: %d | mec: %d | pars: ",
+//             e.id, e.esc, e.dsl, e.rot, e.cat, e.tip, e.mec);
+//         exibirPars(e.par);
+//         fprintf(stderr, "]\n");
+//     }
+//     fprintf(stderr,"\n");
+// }
 
 elemTabSimb* criarSimbolo(char id[], int esc, int dsl, int rot, int cat, int tip, int mec){
     
@@ -63,11 +63,7 @@ int buscaSimbolo(char *id){
 
     for(i = topoTab; i >= 0 && strcmp(tabSimb[i].id, id); i--);
 
-    if(i == -1){
-        return -1;
-    }
-
-    exibirTabela();
+    if(i == -1) return -1;
 
     return i;
 }
@@ -81,9 +77,7 @@ int inserirSimbolo(elemTabSimb* elem){
 
     for(i = topoTab; i >= 0 && (strcmp(tabSimb[i].id, elem->id) || tabSimb[i].esc != elem->esc); i--);
 
-    if(i != -1){
-        return -1;
-    }
+    if(i != -1) return -1;
 
     tabSimb[++topoTab] = *elem;
 }
