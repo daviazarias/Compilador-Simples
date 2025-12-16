@@ -1,4 +1,9 @@
 programa teste
+    inteiro x
 inicio
-    escreva (2 * (3 + 9) - 5) + (4 * 3) div 5
+    leia x
+    se x > 5 
+        entao escreva x
+        senao
+    fimse
 fimprograma

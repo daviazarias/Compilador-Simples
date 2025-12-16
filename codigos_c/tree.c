@@ -204,8 +204,6 @@ void geraCodigo(FILE *arq, ptno p){
                 switch(p_i->tipo)
                 {
                     case LISTA_ROTINAS:
-                        if(n_variaveis > 0) 
-                            fprintf(arq, "\tAMEM\t%d\n", n_variaveis);
                         fprintf(arq, "\tDSVS\tL0\n");
                     break;
 
@@ -245,7 +243,8 @@ void geraCodigo(FILE *arq, ptno p){
                 )   
             ) idDuplicado(p_i);
              
-            geraCodigo(arq, p_i->irmao);
+            if(p_i->irmao) geraCodigo(arq, p_i->irmao);
+            else if(n_variaveis > 0) fprintf(arq, "\tAMEM\t%d\n", n_variaveis);
 
         break;
 
@@ -518,7 +517,7 @@ void geraCodigo(FILE *arq, ptno p){
             geraCodigo(arq, p_i->irmao); 
 
             // Gera código do "senão", caso ele exista
-            if(p_i->irmao){
+            if(p_i->irmao->irmao){
                 aux = desempilha();
                 fprintf(arq, "\tDSVS\tL%d\n", empilha(n_rotulos++));
                 fprintf(arq, "L%d\tNADA\n", aux);
