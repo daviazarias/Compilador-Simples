@@ -10,7 +10,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include "tree.h"
+#include "arvore.h"
 
 #define texto(x) (x ? x : "")
 

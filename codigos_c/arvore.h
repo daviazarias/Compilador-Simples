@@ -8,8 +8,8 @@
   | Data......: 23/11/2025
   +=============================================================*/
 
-#ifndef _H_TREE
-#define _H_TREE
+#ifndef _H_ARVORE
+#define _H_ARVORE
 
 #define QTD_TIPOS 32
 

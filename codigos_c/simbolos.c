@@ -11,7 +11,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "utils.h"
+#include "simbolos.h"
 
 #define TAM_TAB 100 
 
@@ -88,40 +88,6 @@ void removerSimbolos(int qtd){
 
 listaPars** recuperarLista(int ind){
     return &tabSimb[ind].par;
-}
-
-// ---------------- PILHA DE RÓTULOS E TIPOS DE EXPRESSÕES --------------------
-
-#define TAM_PIL 128
-
-elemPilha Pilha[TAM_PIL];
-int topoPil = 0;
-
-int empilhaRot(int rotulo) {
-    if(topoPil == TAM_PIL)
-        yyerror("Pilha cheia!");
-    Pilha[topoPil++] = (elemPilha) rotulo;
-    return rotulo;
-}
-
-listaPars** empilhaLista(listaPars** lista) {
-    if(topoPil == TAM_PIL)
-        yyerror("Pilha cheia!");
-    Pilha[topoPil++] = (elemPilha) lista;
-    return lista;
-}
-
-listaPars* empilhaPar(listaPars* par) {
-    if(topoPil == TAM_PIL)
-        yyerror("Pilha cheia!");
-    Pilha[topoPil++] = (elemPilha) par;
-    return par;
-}
-
-elemPilha desempilha(void) {
-    if(topoPil == 0)
-        yyerror("Pilha vazia!");
-    return Pilha[--topoPil];
 }
 
 // ---------------- LISTA DE PARÂMETROS --------------------

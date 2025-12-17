@@ -10,6 +10,8 @@
 
 #include <stdlib.h>
 #include "semantico.h"
+#include "simbolos.h"
+#include "pilha.h"
 
 #define p_i p->filho
 #define PARAMS FILE* arq, ptno p

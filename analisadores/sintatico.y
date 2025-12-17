@@ -14,8 +14,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "semantico.h"
-#include "tree.h"
-#include "utils.h"
+#include "arvore.h"
+#include "simbolos.h"
 
 #define NOME_PROG "simples"
 #define FORMATO_IMG "svg"
@@ -31,7 +31,7 @@ static ptno raiz = NULL;
 
 %}
 
-%code requires { #include "tree.h" }
+%code requires { #include "arvore.h" }
 
 %union {
     ptno arvore;

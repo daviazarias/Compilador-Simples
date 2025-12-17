@@ -4,7 +4,7 @@ ANALISADORES = analisadores
 FONTE = codigos_c
 OBJ = codigos_o
 
-NOMES = utils tree lexico sintatico semantico
+NOMES = simbolos arvore pilha lexico sintatico semantico
 NOMES_OBJ = $(addprefix $(OBJ)/, $(addsuffix .o, $(NOMES)))
 
 all: $(COMPILADOR)

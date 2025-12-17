@@ -51,23 +51,12 @@ typedef struct {
     listaPars *par;
 } elemTabSimb;
 
-typedef union {
-    int rotulo;
-    listaPars **lista;
-    listaPars *par;
-} elemPilha;
-
 elemTabSimb* criarSimbolo(char id[], int esc, int dsl, int rot, int cat, int tip, int mec);
 listaPars** recuperarLista(int ind);
 void atualizarDeslocamento(int indice, int dsl);
 int inserirSimbolo(elemTabSimb* elem);
 int buscaSimbolo(char *id);
 void removerSimbolos(int qtd);
-
-int empilhaRot(int rotulo);
-listaPars** empilhaLista(listaPars** lista);
-listaPars* empilhaPar(listaPars* par);
-elemPilha desempilha(void);
 
 listaPars* criarPar(int tip, int mec);
 void inserirPar(listaPars** lista, listaPars* novoPar);

@@ -12,8 +12,7 @@
 #define _H_SEMANTICO
 
 #include <stdio.h>
-#include "tree.h"
-#include "utils.h"
+#include "arvore.h"
 
 void geraCodigo(FILE *arq, ptno p);
 
