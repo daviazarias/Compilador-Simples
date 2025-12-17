@@ -10,22 +10,15 @@ static int topoPil = 0;
 int empilhaRot(int rotulo) {
     if(topoPil == TAM_PIL)
         yyerror("Pilha cheia!");
-    Pilha[topoPil++] = (elemPilha) rotulo;
+    Pilha[topoPil++].rotulo = rotulo;
     return rotulo;
 }
 
-listaPars** empilhaLista(listaPars** lista) {
+void* empilhaPtr(void* ptr){
     if(topoPil == TAM_PIL)
         yyerror("Pilha cheia!");
-    Pilha[topoPil++] = (elemPilha) lista;
-    return lista;
-}
-
-listaPars* empilhaPar(listaPars* par) {
-    if(topoPil == TAM_PIL)
-        yyerror("Pilha cheia!");
-    Pilha[topoPil++] = (elemPilha) par;
-    return par;
+    Pilha[topoPil++].ponteiro = ptr;
+    return ptr;
 }
 
 elemPilha desempilha(void) {

@@ -74,8 +74,8 @@ static void empilharArgumentos(FILE* arq, ptno p, int s, char *erroPoucosArgs){
 
     // Empilha lista de parâmetros e ponteiro de parâmetro atuais, no caso
     // de um dos argumentos da rotina for uma função
-    empilhaPar(parametro);
-    empilhaLista(listaParametros);
+    empilhaPtr((void*) parametro);
+    empilhaPtr((void*) listaParametros);
 
     // Recupera o nó do primeiro parâmetro da rotina
     // Os demais nós podem ser recuperados por encadeamento a partir deste
@@ -89,8 +89,8 @@ static void empilharArgumentos(FILE* arq, ptno p, int s, char *erroPoucosArgs){
         _yyerror(p->linha, erroPoucosArgs);
 
     // Desempilha a lista de parâmetros e ponteiro de parâmetros empilhados anteriormente
-    listaParametros = desempilha().lista;
-    parametro = desempilha().par;
+    listaParametros = (listaPars**) desempilha().ponteiro;
+    parametro = (listaPars*) desempilha().ponteiro;
 
     fprintf(arq, "\tSVCP\n");
     fprintf(arq, "\tDSVS\tL%d\n", tabSimb[s].rot);

@@ -18,7 +18,7 @@
 void yyerror(char*);
 
 elemTabSimb tabSimb[TAM_TAB];
-int topoTab = -1; // indica a última posição ocupada da tabSimb
+static int topoTab = -1;
 
 // void exibirPars(listaPars *lista){
 //     for(listaPars* l = lista; l; l = l->prox)

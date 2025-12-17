@@ -1,17 +1,13 @@
 #ifndef _H_PILHA
 #define _H_PILHA
 
-#include "simbolos.h"
-
 typedef union {
     int rotulo;
-    listaPars **lista;
-    listaPars *par;
+    void* ponteiro;
 } elemPilha;
 
 int empilhaRot(int rotulo);
-listaPars** empilhaLista(listaPars** lista);
-listaPars* empilhaPar(listaPars* par);
+void* empilhaPtr(void* ptr);
 elemPilha desempilha(void);
 
 #endif
