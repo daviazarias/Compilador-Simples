@@ -13,12 +13,19 @@
 #include "simbolos.h"
 #include "pilha.h"
 
-#define p1 p->filho
-#define p2 p1->irmao
-#define p3 p2->irmao
+#define P1 p->filho
+#define P2 P1->irmao
+#define P3 P2->irmao
 
 #define PARAMS FILE* arq, ptno p
 #define NADA nada
+
+#define OPERADOR_BINARIO(inst,tip,err)          \
+    geraCodigo(arq, P1);                        \
+    geraCodigo(arq, P2);                        \
+    if(P1->valor != tip || P2->valor != tip)    \
+        _yyerror(p->linha, err);                \
+    fprintf(arq, "\t" inst "\n"); 
 
 static int n_variaveis = 0;
 static int n_parametros = 0;
@@ -104,7 +111,7 @@ static void gerarPrograma(PARAMS){
 
     fprintf(arq, "\tINPP\n");
 
-    for(ptno p_i = p1->irmao; p_i; p_i = p_i->irmao)
+    for(ptno p_i = P1->irmao; p_i; p_i = p_i->irmao)
     {
         switch(p_i->tipo)
         {
@@ -128,15 +135,15 @@ static void gerarPrograma(PARAMS){
 
 static void gerarDeclaracaoVariaveis(PARAMS){
 
-    tipo = p1->valor;
-    geraCodigo(arq, p2);
-    geraCodigo(arq, p3);
+    tipo = P1->valor;
+    geraCodigo(arq, P2);
+    geraCodigo(arq, P3);
 }
 
 static void gerarListaVariaveis(PARAMS){
     if(0 > inserirSimbolo(
             criarSimbolo(
-                p1->id,                // Identificador
+                P1->id,                // Identificador
                 GLOBAL,                 // Escopo
                 n_variaveis++,          // Deslocamento
                 VAZIO,                  // Rótulo       
@@ -145,9 +152,9 @@ static void gerarListaVariaveis(PARAMS){
                 VAZIO                   // Mecanismo
             )
         )   
-    ) idDuplicado(p1);
+    ) idDuplicado(P1);
         
-    if(p1->irmao) geraCodigo(arq, p2);
+    if(P1->irmao) geraCodigo(arq, P2);
     else fprintf(arq, "\tAMEM\t%d\n", n_variaveis);
 }
 
@@ -155,13 +162,13 @@ static void gerarListaRotinas(PARAMS){
     n_parametros = 0;
 
     // Gera código da rotina atual
-    geraCodigo(arq, p1);
+    geraCodigo(arq, P1);
 
     // Remove da tabela os parâmetros da rotina
     removerSimbolos(n_parametros);
 
     // Gera código das demais rotinas
-    geraCodigo(arq, p2);
+    geraCodigo(arq, P2);
 }
 
 static void gerarDeclaracaoFuncao(PARAMS){
@@ -172,7 +179,7 @@ static void gerarDeclaracaoFuncao(PARAMS){
                 VAZIO,                  // Deslocamento -- DESCONHECIDO
                 n_rotulos,              // Rótulo       
                 FUN,                    // Categoria
-                p1->valor,             // Tipo
+                P1->valor,             // Tipo
                 VAZIO                   // Mecanismo
             )
         );
@@ -187,14 +194,14 @@ static void gerarDeclaracaoFuncao(PARAMS){
     listaParametros = recuperarLista(simbolo);
 
     // Passagem pelos parâmetros da função
-    geraCodigo(arq, p2);
+    geraCodigo(arq, P2);
 
     // Após a passagem pela lista de parâmetros, é possível saber o endereço
     // onde deve ser armazenado o retorno da função
     atualizarDeslocamento(simbolo, -(3 + n_parametros));
     
     // Gera código do corpo da função (comandos)
-    geraCodigo(arq, p3);
+    geraCodigo(arq, P3);
 
     // Retorna para o chamador
     fprintf(arq, "\tRTSP\t%d\n", n_parametros);
@@ -223,10 +230,10 @@ static void gerarDeclaracaoProcedimento(PARAMS){
     listaParametros = recuperarLista(simbolo);
 
     // Passagem pelos parâmetros
-    geraCodigo(arq, p1);
+    geraCodigo(arq, P1);
 
     // Gera código do corpo do procedimento (comandos)
-    geraCodigo(arq, p2);
+    geraCodigo(arq, P2);
 
     // Retorna para o chamador
     fprintf(arq, "\tRTSP\t%d\n", n_parametros);
@@ -236,31 +243,31 @@ static void gerarListaParametros(PARAMS){
     // Por questão de eficiência, a função de inserir parâmetros na lista
     // o faz de trás para frente, o que torna necessário visitar os parâmetros
     // ao contrário na árvore
-    geraCodigo(arq, p2);
-    geraCodigo(arq, p1);
+    geraCodigo(arq, P2);
+    geraCodigo(arq, P1);
 }
 
 static void gerarParametro(PARAMS){
 
     if(0 > inserirSimbolo(
             criarSimbolo(
-                p1->irmao->irmao->id,  // Identificador
+                P1->irmao->irmao->id,  // Identificador
                 LOCAL,                  // Escopo
                 -(3 + n_parametros++),  // Deslocamento
                 VAZIO,                  // Rótulo       
                 PAR,                    // Categoria
-                p1->irmao->valor,      // Tipo
-                p1->valor              // Mecanismo
+                P1->irmao->valor,      // Tipo
+                P1->valor              // Mecanismo
             )
         )
-    ) idDuplicado(p3);
+    ) idDuplicado(P3);
 
-    inserirPar(listaParametros, criarPar(p2->valor, p1->valor));
+    inserirPar(listaParametros, criarPar(P2->valor, P1->valor));
 }
 
 static void gerarChamadaFuncao(PARAMS){
     // Busca o identificador da função e verifica se já foi definido
-    int simbolo = buscaSimbolo(p1->id);
+    int simbolo = buscaSimbolo(P1->id);
 
     if(simbolo < 0)
         idNaoEncontrado(p);
@@ -275,10 +282,10 @@ static void gerarChamadaFuncao(PARAMS){
 
 static void gerarChamadaProcedimento(PARAMS){
     // Busca o identificador do procedimento e verifica se já foi definido
-    int simbolo = buscaSimbolo(p1->id);
+    int simbolo = buscaSimbolo(P1->id);
 
     if(simbolo < 0)
-        idNaoEncontrado(p1);
+        idNaoEncontrado(P1);
 
     empilharArgumentos(arq, p, simbolo, "Procedimento chamado com poucos argumentos");
 }
@@ -290,7 +297,7 @@ static void gerarListaArgumentos(PARAMS){
     // Caso os parâmetros da rotina já tenham se esgotado mas ainda haja argumentos,
     // gera erro de compilação.
     if(!parametro)
-        _yyerror(p1->linha, "Argumentos em excesso na chamada de rotina");
+        _yyerror(P1->linha, "Argumentos em excesso na chamada de rotina");
 
     switch(parametro->mec)
     {
@@ -298,11 +305,11 @@ static void gerarListaArgumentos(PARAMS){
 
             // Caso a passagem seja por valor, gera o código para avaliar a expressão
             // passada como argumento 
-            geraCodigo(arq, p1);
+            geraCodigo(arq, P1);
 
             // Verifica se o tipo da expressão é compatível com o do parâmetro
-            if(parametro->tip != p1->valor)
-                _yyerror(p1->linha, "Tipo do argumento incompatível com tipo do parâmetro");
+            if(parametro->tip != P1->valor)
+                _yyerror(P1->linha, "Tipo do argumento incompatível com tipo do parâmetro");
         break;
 
         // Caso a passagem seja por referência, NÃO FAZ chamada recursiva
@@ -310,16 +317,16 @@ static void gerarListaArgumentos(PARAMS){
         case REF:
 
             // Busca o identificador na tabela de símbolos
-            simbolo = buscaSimbolo(p1->id);
+            simbolo = buscaSimbolo(P1->id);
 
             // Verifica se ele foi encontrado, gera erro de compilação caso não tenha sido
             if(simbolo < 0)
-                idNaoEncontrado(p1);
+                idNaoEncontrado(P1);
 
             // Verifica se o tipo do identificador passado como argumento
             // é compatível com o parâmetro esperado e encerra o programa caso não seja
             if(parametro->tip != tabSimb[simbolo].tip)
-                _yyerror(p1->linha, "Tipo do argumento incompatível com parâmetro");
+                _yyerror(P1->linha, "Tipo do argumento incompatível com parâmetro");
 
             // Verifica de que forma o endereço deve ser obtido para ser empilhado
             switch(tabSimb[simbolo].cat)
@@ -334,7 +341,7 @@ static void gerarListaArgumentos(PARAMS){
                 break;
 
                 case PRO:
-                    _yyerror(p1->linha, 
+                    _yyerror(P1->linha, 
                         "Procedimentos não podem ser passados como argumentos de rotinas"
                     );
                 break;
@@ -346,12 +353,12 @@ static void gerarListaArgumentos(PARAMS){
     // Avança para o próximo parâmetro da rotina
     parametro = parametro->prox;
 
-    geraCodigo(arq, p2);
+    geraCodigo(arq, P2);
 }
 
 static void gerarListaComandos(PARAMS){
-    geraCodigo(arq, p1);
-    geraCodigo(arq, p2);
+    geraCodigo(arq, P1);
+    geraCodigo(arq, P2);
 }
 
 static void gerarLeitura(PARAMS){
@@ -359,12 +366,12 @@ static void gerarLeitura(PARAMS){
     fprintf(arq, "\tLEIA\n");
 
     // Armazena topo da pilha, de acordo com a categoria do identificador
-    armazenar(arq, p1, NULL, "Retornos de leituras não podem ser passadas para procedimentos");
+    armazenar(arq, P1, NULL, "Retornos de leituras não podem ser passadas para procedimentos");
 }
 
 static void gerarEscrita(PARAMS){
     // Avalia a expressão cujo resultado deve ser escrito
-    geraCodigo(arq, p1);
+    geraCodigo(arq, P1);
 
     // Comando de escrita
     fprintf(arq, "\tESCR\n");
@@ -373,17 +380,17 @@ static void gerarEscrita(PARAMS){
 static void gerarRepeticao(PARAMS){
     // Rótulo para a avaliação da expressão lógica
     fprintf(arq, "L%d\tNADA\n", empilhaRot(n_rotulos++));
-    geraCodigo(arq, p1);
+    geraCodigo(arq, P1);
 
     // Se o retorno da expressão não for lógica, gera erro de compilação.
-    if(p1->valor != LOG)
-        _yyerror(p1->linha, "Expressão de comando de repetição precisa ter valor lógico");
+    if(P1->valor != LOG)
+        _yyerror(P1->linha, "Expressão de comando de repetição precisa ter valor lógico");
 
     // Sai do laço caso a expressão seja avaliada como falsa
     fprintf(arq, "\tDSVF\tL%d\n", empilhaRot(n_rotulos++));
 
     // Gera o código do corpo do laço
-    geraCodigo(arq, p2);
+    geraCodigo(arq, P2);
 
     // Código para retornar à avaliação da expressão lógica
     int aux = desempilha().rotulo;
@@ -395,26 +402,26 @@ static void gerarRepeticao(PARAMS){
 
 static void gerarSelecao(PARAMS){
     // Gera código para avaliar a expressão lógica
-    geraCodigo(arq, p1);
+    geraCodigo(arq, P1);
 
     // Se o retorno da expressão não for lógica, gera erro de compilação.
-    if(p1->valor != LOG)
-        _yyerror(p1->linha, "Expressão de comando de seleção precisa ter valor lógico");
+    if(P1->valor != LOG)
+        _yyerror(P1->linha, "Expressão de comando de seleção precisa ter valor lógico");
 
     // Se a expressão for avaliada como falsa, vá para o código do "senão",
     // ou, caso este não exista, para o fim do bloco
     fprintf(arq, "\tDSVF\tL%d\n", empilhaRot(n_rotulos++));
 
     // Gera código do "então"
-    geraCodigo(arq, p2); 
+    geraCodigo(arq, P2); 
 
     // Gera código do "senão", caso ele exista
-    if(p3){
+    if(P3){
         int aux = desempilha().rotulo;
         fprintf(arq, "\tDSVS\tL%d\n", empilhaRot(n_rotulos++));
         fprintf(arq, "L%d\tNADA\n", aux);
 
-        geraCodigo(arq, p3);
+        geraCodigo(arq, P3);
     }
 
     // Rótulo marcando o fim do comando de seleção
@@ -423,114 +430,65 @@ static void gerarSelecao(PARAMS){
 
 static void gerarAtribuicao(PARAMS){
     // Gera código da avaliação da expressão do lado direito da atribuição
-    geraCodigo(arq, p2);
+    geraCodigo(arq, P2);
 
     // Armazena resultado da expressão no identificador de acordo com sua categoria
     // Gera erro de compilação caso o tipo do identificador seja diferente do tipo
     // da expressão ou caso o identificador do lado esquerdo da atribuição seja
     // de um procedimento 
-    armazenar(arq, p1, 
+    armazenar(arq, P1, 
         "Comando de atribuição precisa ter tipos compatíveis",
         "Procedimentos não podem ser utilizados do lado esquerdo de atribuições"
     );
 }
 
 static void gerarMultiplicacao(PARAMS){
-    geraCodigo(arq, p1);
-    geraCodigo(arq, p2);
-
-    if(p1->valor != INT || p1->irmao->valor != INT)
-        _yyerror(p->linha, "Somente valores inteiros podem ser multiplicados");
-    
-    fprintf(arq, "\tMULT\n");
+    OPERADOR_BINARIO("MULT", INT, "Somente valores inteiros podem ser multiplicados")
 }
 
 static void gerarDivisao(PARAMS){
-    geraCodigo(arq, p1);
-    geraCodigo(arq, p2);
-
-    if(p1->valor != INT || p2->valor != INT)
-        _yyerror(p->linha, "Somente valores inteiros podem ser divididos");
-    
-    fprintf(arq, "\tDIVI\n");
+    OPERADOR_BINARIO("DIVI", INT, "Somente valores inteiros podem ser divididos")
 }
 
-
 static void gerarSoma(PARAMS){
-    geraCodigo(arq, p1);
-    geraCodigo(arq, p2);
-
-    if(p1->valor != INT || p2->valor != INT)
-        _yyerror(p->linha, "Somente valores inteiros podem ser somados");
-    
-    fprintf(arq, "\tSOMA\n");
+    OPERADOR_BINARIO("SOMA", INT, "Somente valores inteiros podem ser somados")
 }
 
 static void gerarSubtracao(PARAMS){
-    geraCodigo(arq, p1);
-    geraCodigo(arq, p2);
-
-    if(p1->valor != INT || p2->valor != INT)
-        _yyerror(p->linha, "Somente valores inteiros podem ser subtraídos");
-    
-    fprintf(arq, "\tSUBT\n");
+    OPERADOR_BINARIO("SUBT", INT, "Somente valores inteiros podem ser subtraídos")
 }
 
 static void gerarComparaMaior(PARAMS){
-    geraCodigo(arq, p1);
-    geraCodigo(arq, p2);
-
-    if(p1->valor != INT || p2->valor != INT)
-        _yyerror(p->linha, "Operador de maior precisa de dois valores inteiros");
-
-    fprintf(arq, "\tCMMA\n");
+    OPERADOR_BINARIO("CMMA", INT, "Operador de maior precisa de dois valores inteiros")
 }
 
 static void gerarComparaMenor(PARAMS){
-    geraCodigo(arq, p1);
-    geraCodigo(arq, p2);
+    OPERADOR_BINARIO("CMME", INT, "Operador de menor precisa de dois valores inteiros")
+}
 
-    if(p1->valor != INT || p2->valor != INT)
-        _yyerror(p->linha, "Operador de menor precisa de dois valores inteiros");
+static void gerarDisjuncao(PARAMS){
+    OPERADOR_BINARIO("DISJ", LOG, "Operador de disjunção precisa de dois valores inteiros")
+}
 
-    fprintf(arq, "\tCMME\n");
+static void gerarConjuncao(PARAMS){
+    OPERADOR_BINARIO("CONJ", LOG, "Operador de conjunção precisa de dois valores inteiros")
 }
 
 static void gerarComparaIgual(PARAMS){
-    geraCodigo(arq, p1);
-    geraCodigo(arq, p2);
+    geraCodigo(arq, P1);
+    geraCodigo(arq, P2);
 
-    if(p1->valor != p2->valor)
+    if(P1->valor != P2->valor)
         _yyerror(p->linha, "Operador de igualdade precisa ter valores de mesmo tipo");
 
     fprintf(arq, "\tCMIG\n");
 }
 
-static void gerarDisjuncao(PARAMS){
-    geraCodigo(arq, p1);
-    geraCodigo(arq, p2);
-
-    if(p1->valor != LOG || p2->valor != LOG)
-        _yyerror(p->linha, "Operador de disjunção precisa de valores lógicos");
-    
-    fprintf(arq, "\tDISJ\n");
-}
-
-static void gerarConjuncao(PARAMS){
-    geraCodigo(arq, p1);
-    geraCodigo(arq, p2);
-
-    if(p1->valor != LOG || p2->valor != LOG)
-        _yyerror(p->linha, "Operador de conjunção precisa de valores lógicos");
-    
-    fprintf(arq, "\tCONJ\n");
-}
-
 static void gerarNegacao(PARAMS){
-    geraCodigo(arq, p1);
+    geraCodigo(arq, P1);
 
-    if(p1->valor != LOG)
-        _yyerror(p1->linha, "Somente valores lógicos podem ser negados");
+    if(P1->valor != LOG)
+        _yyerror(P1->linha, "Somente valores lógicos podem ser negados");
 
     fprintf(arq, "\tNEGA\n");
 }
